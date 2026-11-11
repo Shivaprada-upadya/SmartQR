@@ -6,6 +6,8 @@ import { rateLimit } from 'express-rate-limit'
 
 import authRoutes from './routes/auth.routes.js'
 import healthRoutes from './routes/health.routes.js'
+import qrRoutes from './routes/qr.routes.js'
+import redirectRoutes from './routes/redirect.routes.js'
 import notFoundHandler from './middleware/not-found.middleware.js'
 import errorHandler from './middleware/error.middleware.js'
 
@@ -42,6 +44,8 @@ app.use('/api', apiLimiter)
 // API routes
 app.use('/api/health', healthRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/qr', qrRoutes)
+app.use('/r', redirectRoutes)
 // Handle unknown routes and errors
 app.use(notFoundHandler)
 app.use(errorHandler)
