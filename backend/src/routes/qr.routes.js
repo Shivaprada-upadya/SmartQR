@@ -7,6 +7,7 @@ import {
   getQrCode,
   updateQr,
   deleteQr,
+  getQrAnalyticsController
 } from '../controllers/qr.controller.js'
 
 import authenticate from '../middleware/auth.middleware.js'
@@ -19,8 +20,8 @@ router.use(authenticate)
 
 router.post('/', validate(createQrSchema), createQr)
 router.get('/', getQrCodes)
+router.get('/:id/analytics', getQrAnalyticsController)
 router.get('/:id', getQrCode)
 router.patch('/:id', validate(updateQrSchema), updateQr)
 router.delete('/:id', deleteQr)
-
 export default router

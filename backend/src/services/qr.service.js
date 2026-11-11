@@ -247,4 +247,114 @@ export const recordQrScan = async (
   )
 }
 
+export const getQrAnalytics = async (qrId, userId) => {
+  // Verify that this QR code belongs to the logged-in user.
+  const qrResult = await pool.query(
+    `SELECT id, title, qr_type
+     FROM qr_codes
+     WHERE id = $1 AND user_id = $2`,
+    [qrId, userId],
+  )
+
+  if (qrResult.rows.length === 0) {
+    const error = new Error('QR code not found')
+    error.statusCode = 404
+    throw error
+  }
+
+  // Total scans and today's scans.
+  const summaryResult = await pool.query(
+    `SELECT
+       COUNT(*)::int AS total_scans,
+       COUNT(*) FILTER (
+         WHERE scanned_at >= CURRENT_DATE
+         AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
+       )::int AS today_scans
+     FROM qr_scans
+     WHERE qr_code_id = $1`,
+    [qrId],
+  )
+
+  // Daily scans for the last seven days, including zero-scan days.
+  const dailyResult = await pool.query(
+    `SELECT
+       days.day::date AS date,
+       COUNT(scans.id)::int AS scans
+     FROM generate_series(
+       CURRENT_DATE - INTERVAL '6 days',
+       CURRENT_DATE,
+       INTERVAL '1 day'
+     ) AS days(day)
+     LEFT JOIN qr_scans scans
+       ON scans.qr_code_id = $1
+       AND scans.scanned_at >= days.day
+       AND scans.scanned_at < days.day + INTERVAL '1 day'
+     GROUP BY days.day
+     ORDER BY days.day`,
+    [qrId],
+  )
+
+  // Device statistics.
+  const deviceResult = await pool.query(
+    `SELECT
+       device_type,
+       COUNT(*)::int AS scans
+     FROM qr_scans
+     WHERE qr_code_id = $1
+     GROUP BY device_type
+     ORDER BY scans DESC`,
+    [qrId],
+  )
+
+  // Browser statistics.
+  const browserResult = await pool.query(
+    `SELECT
+       COALESCE(browser, 'Unknown') AS browser,
+       COUNT(*)::int AS scans
+     FROM qr_scans
+     WHERE qr_code_id = $1
+     GROUP BY browser
+     ORDER BY scans DESC`,
+    [qrId],
+  )
+
+  // Operating system statistics.
+  const osResult = await pool.query(
+    `SELECT
+       COALESCE(operating_system, 'Unknown') AS operating_system,
+       COUNT(*)::int AS scans
+     FROM qr_scans
+     WHERE qr_code_id = $1
+     GROUP BY operating_system
+     ORDER BY scans DESC`,
+    [qrId],
+  )
+
+  // Latest ten scans.
+  const recentResult = await pool.query(
+    `SELECT
+       id,
+       scanned_at,
+       device_type,
+       browser,
+       operating_system,
+       referrer
+     FROM qr_scans
+     WHERE qr_code_id = $1
+     ORDER BY scanned_at DESC
+     LIMIT 10`,
+    [qrId],
+  )
+
+  return {
+    qrCode: qrResult.rows[0],
+    summary: summaryResult.rows[0],
+    dailyScans: dailyResult.rows,
+    deviceBreakdown: deviceResult.rows,
+    browserBreakdown: browserResult.rows,
+    operatingSystemBreakdown: osResult.rows,
+    recentScans: recentResult.rows,
+  }
+}
+
 

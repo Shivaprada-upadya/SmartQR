@@ -1,4 +1,4 @@
-import { createQrCode, getUserQrCodes, getQrCodeById, updateQrCode,deleteQrCode } from "../services/qr.service.js";
+import { createQrCode, getUserQrCodes, getQrCodeById, updateQrCode,deleteQrCode, getQrAnalytics } from "../services/qr.service.js";
 export const createQr = async (req, res) => {
   const qrCode = await createQrCode({
     ...req.body,
@@ -69,3 +69,15 @@ export const deleteQr = async (req, res) => {
   })
 }
 
+export const getQrAnalyticsController = async (req, res) => {
+  const analytics = await getQrAnalytics(
+    req.params.id,
+    req.user.userId,
+  )
+
+  res.status(200).json({
+    success: true,
+    message: 'QR analytics retrieved successfully',
+    data: analytics,
+  })
+}
