@@ -13,6 +13,7 @@ import redirectRoutes from './routes/redirect.routes.js'
 
 import notFoundHandler from './middleware/not-found.middleware.js'
 import errorHandler from './middleware/error.middleware.js'
+import requireJsonContentType from './middleware/require-json.middleware.js'
 
 const app = express()
 
@@ -53,6 +54,7 @@ const apiLimiter = rateLimit({
 })
 
 app.use('/api', apiLimiter)
+app.use('/api', requireJsonContentType)
 
 // API routes
 app.use('/api/health', healthRoutes)

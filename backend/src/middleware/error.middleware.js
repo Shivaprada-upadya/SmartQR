@@ -40,7 +40,10 @@ const errorHandler = (err, req, res, next) => {
     code = 'PAYLOAD_TOO_LARGE'
   } else if (statusCode === 429) {
     code = 'TOO_MANY_REQUESTS'
+  } else if (statusCode === 415) {
+    code = 'UNSUPPORTED_MEDIA_TYPE'
   }
+  
 
   // Log the error with request context.
   const logContext = {

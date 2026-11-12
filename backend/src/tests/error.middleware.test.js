@@ -102,4 +102,14 @@ describe('Centralized Error Middleware', () => {
     expect(response.body.code).toBe('PAYLOAD_TOO_LARGE')
     expect(response.body.message).toBe('Request body is too large')
   })
+
+  it('should not parse plain-text request bodies as JSON', async () => {
+    const response = await request(createTestApp())
+      .post('/body')
+      .set('Content-Type', 'text/plain')
+      .send('This is plain text')
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toBeUndefined()
+  })
 })
