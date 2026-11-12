@@ -14,8 +14,12 @@ import redirectRoutes from './routes/redirect.routes.js'
 import notFoundHandler from './middleware/not-found.middleware.js'
 import errorHandler from './middleware/error.middleware.js'
 import requireJsonContentType from './middleware/require-json.middleware.js'
+import hppProtection from './middleware/hpp.middleware.js'
 
 const app = express()
+
+// Use simple query parsing to prevent nested query objects.
+app.set('query parser', 'simple')
 
 // Security headers
 app.use(helmet())
@@ -55,6 +59,7 @@ const apiLimiter = rateLimit({
 
 app.use('/api', apiLimiter)
 app.use('/api', requireJsonContentType)
+app.use('/api', hppProtection)
 
 // API routes
 app.use('/api/health', healthRoutes)
