@@ -12,14 +12,15 @@ import {
 
 import authenticate from '../middleware/auth.middleware.js'
 import validate from '../middleware/validate.middleware.js'
-import { createQrSchema, updateQrSchema  } from '../validators/qr.validator.js'
+import validateQuery from '../middleware/validate-query.middleware.js'
+import { createQrSchema, updateQrSchema, paginationQuerySchema  } from '../validators/qr.validator.js'
 
 const router = Router()
 
 router.use(authenticate)
 
 router.post('/', validate(createQrSchema), createQr)
-router.get('/', getQrCodes)
+router.get('/', validateQuery(paginationQuerySchema), getQrCodes)
 router.get('/:id/analytics', getQrAnalyticsController)
 router.get('/:id', getQrCode)
 router.patch('/:id', validate(updateQrSchema), updateQr)

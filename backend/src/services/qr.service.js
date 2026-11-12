@@ -66,25 +66,33 @@ export const createQrCode = async ({
 }
 
 
-export const getUserQrCodes = async (userId) => {
-  const result = await pool.query(
-    `SELECT
-       id,
-       title,
-       destination,
-       qr_type,
-       short_code,
-       is_active,
-       expires_at,
-       created_at,
-       updated_at
-     FROM qr_codes
-     WHERE user_id = $1
-     ORDER BY created_at DESC`,
-    [userId],
-  )
+export const getUserQrCodes = async (userId, { page, limit }) => {
+  const offset = (page - 1) * limit
 
-  return result.rows
+  const [qrResult, countResult] = await Promise.all([
+    pool.query(
+      `SELECT
+         id, title, destination, qr_type, short_code, is_active,
+         expires_at, created_at, updated_at
+       FROM qr_codes
+       WHERE user_id = $1
+       ORDER BY created_at DESC, id DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset],
+    ),
+
+    pool.query(
+      `SELECT COUNT(*)::int AS total_records
+       FROM qr_codes
+       WHERE user_id = $1`,
+      [userId],
+    ),
+  ])
+
+  return {
+    qrCodes: qrResult.rows,
+    totalRecords: countResult.rows[0].total_records,
+  }
 }
 
 
