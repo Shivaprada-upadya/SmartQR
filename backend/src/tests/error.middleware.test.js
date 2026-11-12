@@ -1,12 +1,15 @@
+
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import express from 'express'
 import request from 'supertest'
 
 import errorHandler from '../middleware/error.middleware.js'
+import { logger, requestLogger } from '../config/logger.js'
 
 const createTestApp = () => {
   const app = express()
 
+  app.use(requestLogger)
   app.use(express.json({ limit: '20b' }))
 
   app.get('/error', (req, res, next) => {
@@ -34,7 +37,7 @@ describe('Centralized Error Middleware', () => {
   })
 
   it('should return a consistent 409 conflict response', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const warnSpy = vi.spyOn(logger, 'warn')
 
     const response = await request(createTestApp()).get('/error')
 
@@ -44,10 +47,19 @@ describe('Centralized Error Middleware', () => {
       code: 'CONFLICT',
       message: 'Something went wrong',
     })
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: response.headers['x-request-id'],
+        method: 'GET',
+        statusCode: 409,
+      }),
+      'API request rejected',
+    )
   })
 
-  it('should hide internal error details from the response', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('should log unexpected server errors with request ID', async () => {
+    const errorSpy = vi.spyOn(logger, 'error')
 
     const response = await request(createTestApp()).get('/server-error')
 
@@ -57,12 +69,20 @@ describe('Centralized Error Middleware', () => {
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Internal server error',
     })
+
     expect(response.body.message).not.toContain('Database password')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: response.headers['x-request-id'],
+        method: 'GET',
+        statusCode: 500,
+      }),
+      'API request failed',
+    )
   })
 
   it('should return 400 for malformed JSON', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-
     const response = await request(createTestApp())
       .post('/body')
       .set('Content-Type', 'application/json')
@@ -74,8 +94,6 @@ describe('Centralized Error Middleware', () => {
   })
 
   it('should return 413 for oversized JSON requests', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-
     const response = await request(createTestApp())
       .post('/body')
       .send({ value: 'This request body is intentionally too large' })

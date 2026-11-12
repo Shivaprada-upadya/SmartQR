@@ -1,4 +1,6 @@
+
 import pg from 'pg'
+import { logger } from './logger.js'
 
 const { Pool } = pg
 
@@ -10,11 +12,11 @@ const pool = new Pool({
 })
 
 pool.on('connect', () => {
-  console.log('PostgreSQL client connected')
+  logger.info('PostgreSQL client connected')
 })
 
 pool.on('error', (error) => {
-  console.error('Unexpected PostgreSQL pool error:', error.message)
+  logger.error({ err: error }, 'Unexpected PostgreSQL pool error')
 })
 
 export default pool

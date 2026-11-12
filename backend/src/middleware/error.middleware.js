@@ -1,11 +1,8 @@
 
-const errorHandler = (err, req, res, next) => {
-  // Let Express handle errors if the response has already started.
-  if (res.headersSent) {
-    return next(err)
-  }
+import { logger } from '../config/logger.js'
 
-  // Determine the correct HTTP status.
+const errorHandler = (err, req, res, next) => {
+  // Determine the HTTP status.
   let statusCode = err.statusCode || err.status || 500
 
   // Handle malformed JSON and oversized request bodies.
@@ -45,9 +42,27 @@ const errorHandler = (err, req, res, next) => {
     code = 'TOO_MANY_REQUESTS'
   }
 
-  // Log the full error on the server, not in the API response.
-  console.error('API Error:', err)
+  // Log the error with request context.
+  const logContext = {
+    err,
+    requestId: req.id || 'unavailable',
+    method: req.method,
+    path: req.originalUrl,
+    statusCode,
+  }
 
+  if (statusCode >= 500) {
+    logger.error(logContext, 'API request failed')
+  } else {
+    logger.warn(logContext, 'API request rejected')
+  }
+
+  // Let Express handle errors if the response has already started.
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  // Never expose internal server error details.
   const message =
     statusCode === 500
       ? 'Internal server error'

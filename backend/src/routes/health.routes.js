@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import pool from '../config/database.js'
+import { logger } from '../config/logger.js'
 
 const router = Router()
 
@@ -28,7 +29,7 @@ router.get('/db', async (req, res) => {
       data: result.rows[0],
     })
   } catch (error) {
-    console.error('Database health check failed:', error.message)
+    logger.error({ err: error }, 'Database health check failed')
 
     res.status(503).json({
       success: false,
