@@ -19,10 +19,22 @@ const app = express()
 // Security headers
 app.use(helmet())
 
+
 // Cross-origin configuration
+const allowedOrigin =
+  process.env.CLIENT_URL || 'http://localhost:5173'
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header (e.g. server-to-server).
+      if (!origin || origin === allowedOrigin) {
+        return callback(null, true)
+      }
+
+      // Do not grant CORS access to untrusted origins.
+      return callback(null, false)
+    },
   }),
 )
 
