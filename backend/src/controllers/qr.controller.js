@@ -14,12 +14,13 @@ export const createQr = async (req, res) => {
   });
 };
 
+
 export const getQrCodes = async (req, res) => {
-  const { page, limit } = req.validatedQuery
+  const { page, limit, search, qrType, isActive } = req.validatedQuery
 
   const { qrCodes, totalRecords } = await getUserQrCodes(
     req.user.userId,
-    { page, limit },
+    { page, limit, search, qrType, isActive },
   )
 
   const totalPages = Math.ceil(totalRecords / limit)

@@ -297,6 +297,82 @@ it('should reject invalid pagination parameters', async () => {
   }
 })
 
+
+it('should search QR codes by title', async () => {
+  const response = await request(app)
+    .get('/api/qr?search=Pagination%20QR%20One')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(200)
+  expect(response.body.data.qrCodes).toHaveLength(1)
+  expect(response.body.data.qrCodes[0].title).toBe('Pagination QR One')
+  expect(response.body.pagination.totalRecords).toBe(1)
+})
+
+it('should filter QR codes by type', async () => {
+  const response = await request(app)
+    .get('/api/qr?qrType=dynamic')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(200)
+  expect(response.body.data.qrCodes.length).toBeGreaterThan(0)
+  expect(
+    response.body.data.qrCodes.every((qr) => qr.qr_type === 'dynamic'),
+  ).toBe(true)
+})
+
+it('should filter active QR codes', async () => {
+  const response = await request(app)
+    .get('/api/qr?isActive=true')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(200)
+  expect(
+    response.body.data.qrCodes.every((qr) => qr.is_active === true),
+  ).toBe(true)
+})
+
+it('should filter inactive QR codes', async () => {
+  const response = await request(app)
+    .get('/api/qr?isActive=false')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(200)
+  expect(
+    response.body.data.qrCodes.every((qr) => qr.is_active === false),
+  ).toBe(true)
+})
+
+it('should combine QR type, status, search, and pagination filters', async () => {
+  const response = await request(app)
+    .get('/api/qr?search=Pagination&qrType=static&isActive=true&page=1&limit=1')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(200)
+  expect(response.body.data.qrCodes).toHaveLength(1)
+  expect(response.body.data.qrCodes[0].title).toContain('Pagination')
+  expect(response.body.data.qrCodes[0].qr_type).toBe('static')
+  expect(response.body.data.qrCodes[0].is_active).toBe(true)
+  expect(response.body.pagination.totalRecords).toBe(2)
+  expect(response.body.pagination.limit).toBe(1)
+})
+
+it('should reject an invalid QR type filter', async () => {
+  const response = await request(app)
+    .get('/api/qr?qrType=invalid')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(400)
+})
+
+it('should reject an invalid active status filter', async () => {
+  const response = await request(app)
+    .get('/api/qr?isActive=yes')
+    .set('Authorization', `Bearer ${tokenOne}`)
+
+  expect(response.status).toBe(400)
+})
+
 })
 
 afterAll(async () => {
