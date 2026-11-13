@@ -47,6 +47,7 @@ export const updateQrSchema = z
     },
   )
 
+
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 
@@ -60,4 +61,12 @@ export const paginationQuerySchema = z.object({
     .enum(['true', 'false'])
     .transform((value) => value === 'true')
     .optional(),
+
+  sortBy: z
+    .enum(['createdAt', 'updatedAt', 'title'])
+    .default('createdAt'),
+
+  sortOrder: z
+    .enum(['asc', 'desc'])
+    .default('desc'),
 })

@@ -66,11 +66,30 @@ export const createQrCode = async ({
 }
 
 
+
 export const getUserQrCodes = async (
   userId,
-  { page, limit, search, qrType, isActive },
+  {
+    page,
+    limit,
+    search,
+    qrType,
+    isActive,
+    sortBy,
+    sortOrder,
+  },
 ) => {
   const offset = (page - 1) * limit
+
+  // Map API sort fields to trusted database column names.
+  const sortColumns = {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    title: 'title',
+  }
+
+  const sortColumn = sortColumns[sortBy] ?? 'created_at'
+  const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC'
 
   const queryParams = [
     userId,
@@ -93,7 +112,7 @@ export const getUserQrCodes = async (
          expires_at, created_at, updated_at
        FROM qr_codes
        ${filterConditions}
-       ORDER BY created_at DESC, id DESC
+       ORDER BY ${sortColumn} ${sortDirection}, id DESC
        LIMIT $5 OFFSET $6`,
       [...queryParams, limit, offset],
     ),

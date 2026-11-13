@@ -86,33 +86,31 @@ describe('SmartQR QR Management API', () => {
 
     expect(dynamicResponse.status).toBe(201)
     dynamicQrId = dynamicResponse.body.data.qrCode.id
-  })
 
-  beforeAll(async () => {
     const qrOne = await request(app)
-        .post('/api/qr')
-        .set('Authorization', `Bearer ${tokenOne}`)
-        .send({
+      .post('/api/qr')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
         title: 'Pagination QR One',
         destination: 'https://example.com/page-one',
         qrType: 'static',
-        })
+      })
 
     expect(qrOne.status).toBe(201)
     paginationQrIdOne = qrOne.body.data.qrCode.id
 
     const qrTwo = await request(app)
-        .post('/api/qr')
-        .set('Authorization', `Bearer ${tokenOne}`)
-        .send({
+      .post('/api/qr')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
         title: 'Pagination QR Two',
         destination: 'https://example.com/page-two',
         qrType: 'static',
-        })
+      })
 
     expect(qrTwo.status).toBe(201)
     paginationQrIdTwo = qrTwo.body.data.qrCode.id
-    })
+  })
 
   it('should reject unauthenticated QR requests', async () => {
     const response = await request(app)
@@ -230,149 +228,223 @@ describe('SmartQR QR Management API', () => {
     expect(getResponse.status).toBe(404)
   })
 
+  // Pagination tests
+
   it('should return pagination metadata with default values', async () => {
-  const response = await request(app)
-    .get('/api/qr')
-    .set('Authorization', `Bearer ${tokenOne}`)
-
-  expect(response.status).toBe(200)
-  expect(response.body.pagination).toEqual({
-    page: 1,
-    limit: 10,
-    totalRecords:3,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  })
-})
-
-it('should return QR codes one page at a time', async () => {
-  const pageOne = await request(app)
-    .get('/api/qr?page=1&limit=1')
-    .set('Authorization', `Bearer ${tokenOne}`)
-
-  const pageTwo = await request(app)
-    .get('/api/qr?page=2&limit=1')
-    .set('Authorization', `Bearer ${tokenOne}`)
-
-  expect(pageOne.status).toBe(200)
-  expect(pageTwo.status).toBe(200)
-
-  expect(pageOne.body.data.qrCodes).toHaveLength(1)
-  expect(pageTwo.body.data.qrCodes).toHaveLength(1)
-
-  expect(pageOne.body.pagination.hasNextPage).toBe(true)
-  expect(pageTwo.body.pagination.hasPreviousPage).toBe(true)
-
-  expect(pageOne.body.data.qrCodes[0].id)
-    .not.toBe(pageTwo.body.data.qrCodes[0].id)
-})
-
-it('should return an empty paginated list for a user without QR codes', async () => {
-  const response = await request(app)
-    .get('/api/qr')
-    .set('Authorization', `Bearer ${tokenTwo}`)
-
-  expect(response.status).toBe(200)
-  expect(response.body.data.qrCodes).toHaveLength(0)
-  expect(response.body.pagination.totalRecords).toBe(0)
-  expect(response.body.pagination.totalPages).toBe(0)
-})
-
-it('should reject invalid pagination parameters', async () => {
-  const invalidQueries = [
-    '?page=0',
-    '?page=abc',
-    '?limit=0',
-    '?limit=101',
-  ]
-
-  for (const query of invalidQueries) {
     const response = await request(app)
-      .get(`/api/qr${query}`)
+      .get('/api/qr')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      totalRecords: 3,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    })
+  })
+
+  it('should return QR codes one page at a time', async () => {
+    const pageOne = await request(app)
+      .get('/api/qr?page=1&limit=1')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    const pageTwo = await request(app)
+      .get('/api/qr?page=2&limit=1')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(pageOne.status).toBe(200)
+    expect(pageTwo.status).toBe(200)
+
+    expect(pageOne.body.data.qrCodes).toHaveLength(1)
+    expect(pageTwo.body.data.qrCodes).toHaveLength(1)
+
+    expect(pageOne.body.pagination.hasNextPage).toBe(true)
+    expect(pageTwo.body.pagination.hasPreviousPage).toBe(true)
+
+    expect(pageOne.body.data.qrCodes[0].id)
+      .not.toBe(pageTwo.body.data.qrCodes[0].id)
+  })
+
+  it('should return an empty paginated list for a user without QR codes', async () => {
+    const response = await request(app)
+      .get('/api/qr')
+      .set('Authorization', `Bearer ${tokenTwo}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.qrCodes).toHaveLength(0)
+    expect(response.body.pagination.totalRecords).toBe(0)
+    expect(response.body.pagination.totalPages).toBe(0)
+  })
+
+  it('should reject invalid pagination parameters', async () => {
+    const invalidQueries = [
+      '?page=0',
+      '?page=abc',
+      '?limit=0',
+      '?limit=101',
+    ]
+
+    for (const query of invalidQueries) {
+      const response = await request(app)
+        .get(`/api/qr${query}`)
+        .set('Authorization', `Bearer ${tokenOne}`)
+
+      expect(response.status).toBe(400)
+      expect(response.body.success).toBe(false)
+    }
+  })
+
+  // Search and filtering tests
+
+  it('should search QR codes by title', async () => {
+    const response = await request(app)
+      .get('/api/qr?search=Pagination%20QR%20One')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.qrCodes).toHaveLength(1)
+    expect(response.body.data.qrCodes[0].title).toBe('Pagination QR One')
+    expect(response.body.pagination.totalRecords).toBe(1)
+  })
+
+  it('should filter QR codes by type', async () => {
+    const response = await request(app)
+      .get('/api/qr?qrType=dynamic')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.qrCodes.length).toBeGreaterThan(0)
+    expect(
+      response.body.data.qrCodes.every((qr) => qr.qr_type === 'dynamic'),
+    ).toBe(true)
+  })
+
+  it('should filter active QR codes', async () => {
+    const response = await request(app)
+      .get('/api/qr?isActive=true')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(
+      response.body.data.qrCodes.every((qr) => qr.is_active === true),
+    ).toBe(true)
+  })
+
+  it('should filter inactive QR codes', async () => {
+    const response = await request(app)
+      .get('/api/qr?isActive=false')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(
+      response.body.data.qrCodes.every((qr) => qr.is_active === false),
+    ).toBe(true)
+  })
+
+  it('should combine QR type, status, search, and pagination filters', async () => {
+    const response = await request(app)
+      .get('/api/qr?search=Pagination&qrType=static&isActive=true&page=1&limit=1')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.qrCodes).toHaveLength(1)
+    expect(response.body.data.qrCodes[0].title).toContain('Pagination')
+    expect(response.body.data.qrCodes[0].qr_type).toBe('static')
+    expect(response.body.data.qrCodes[0].is_active).toBe(true)
+    expect(response.body.pagination.totalRecords).toBe(2)
+    expect(response.body.pagination.limit).toBe(1)
+  })
+
+  it('should reject an invalid QR type filter', async () => {
+    const response = await request(app)
+      .get('/api/qr?qrType=invalid')
       .set('Authorization', `Bearer ${tokenOne}`)
 
     expect(response.status).toBe(400)
-    expect(response.body.success).toBe(false)
-  }
-})
+  })
 
+  it('should reject an invalid active status filter', async () => {
+    const response = await request(app)
+      .get('/api/qr?isActive=yes')
+      .set('Authorization', `Bearer ${tokenOne}`)
 
-it('should search QR codes by title', async () => {
-  const response = await request(app)
-    .get('/api/qr?search=Pagination%20QR%20One')
-    .set('Authorization', `Bearer ${tokenOne}`)
+    expect(response.status).toBe(400)
+  })
 
-  expect(response.status).toBe(200)
-  expect(response.body.data.qrCodes).toHaveLength(1)
-  expect(response.body.data.qrCodes[0].title).toBe('Pagination QR One')
-  expect(response.body.pagination.totalRecords).toBe(1)
-})
+  // Sorting tests
 
-it('should filter QR codes by type', async () => {
-  const response = await request(app)
-    .get('/api/qr?qrType=dynamic')
-    .set('Authorization', `Bearer ${tokenOne}`)
+  it('should sort QR codes by title in ascending order', async () => {
+    const response = await request(app)
+      .get('/api/qr?sortBy=title&sortOrder=asc')
+      .set('Authorization', `Bearer ${tokenOne}`)
 
-  expect(response.status).toBe(200)
-  expect(response.body.data.qrCodes.length).toBeGreaterThan(0)
-  expect(
-    response.body.data.qrCodes.every((qr) => qr.qr_type === 'dynamic'),
-  ).toBe(true)
-})
+    expect(response.status).toBe(200)
 
-it('should filter active QR codes', async () => {
-  const response = await request(app)
-    .get('/api/qr?isActive=true')
-    .set('Authorization', `Bearer ${tokenOne}`)
+    const titles = response.body.data.qrCodes.map((qr) => qr.title)
 
-  expect(response.status).toBe(200)
-  expect(
-    response.body.data.qrCodes.every((qr) => qr.is_active === true),
-  ).toBe(true)
-})
+    expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b)))
+  })
 
-it('should filter inactive QR codes', async () => {
-  const response = await request(app)
-    .get('/api/qr?isActive=false')
-    .set('Authorization', `Bearer ${tokenOne}`)
+  it('should sort QR codes by title in descending order', async () => {
+    const response = await request(app)
+      .get('/api/qr?sortBy=title&sortOrder=desc')
+      .set('Authorization', `Bearer ${tokenOne}`)
 
-  expect(response.status).toBe(200)
-  expect(
-    response.body.data.qrCodes.every((qr) => qr.is_active === false),
-  ).toBe(true)
-})
+    expect(response.status).toBe(200)
 
-it('should combine QR type, status, search, and pagination filters', async () => {
-  const response = await request(app)
-    .get('/api/qr?search=Pagination&qrType=static&isActive=true&page=1&limit=1')
-    .set('Authorization', `Bearer ${tokenOne}`)
+    const titles = response.body.data.qrCodes.map((qr) => qr.title)
 
-  expect(response.status).toBe(200)
-  expect(response.body.data.qrCodes).toHaveLength(1)
-  expect(response.body.data.qrCodes[0].title).toContain('Pagination')
-  expect(response.body.data.qrCodes[0].qr_type).toBe('static')
-  expect(response.body.data.qrCodes[0].is_active).toBe(true)
-  expect(response.body.pagination.totalRecords).toBe(2)
-  expect(response.body.pagination.limit).toBe(1)
-})
+    expect(titles).toEqual(
+      [...titles].sort((a, b) => b.localeCompare(a)),
+    )
+  })
 
-it('should reject an invalid QR type filter', async () => {
-  const response = await request(app)
-    .get('/api/qr?qrType=invalid')
-    .set('Authorization', `Bearer ${tokenOne}`)
+  it('should sort QR codes by creation date in descending order by default', async () => {
+    const response = await request(app)
+      .get('/api/qr')
+      .set('Authorization', `Bearer ${tokenOne}`)
 
-  expect(response.status).toBe(400)
-})
+    expect(response.status).toBe(200)
 
-it('should reject an invalid active status filter', async () => {
-  const response = await request(app)
-    .get('/api/qr?isActive=yes')
-    .set('Authorization', `Bearer ${tokenOne}`)
+    const dates = response.body.data.qrCodes.map(
+      (qr) => new Date(qr.created_at).getTime(),
+    )
 
-  expect(response.status).toBe(400)
-})
+    expect(dates).toEqual([...dates].sort((a, b) => b - a))
+  })
 
+  it('should sort QR codes by last updated date', async () => {
+    const response = await request(app)
+      .get('/api/qr?sortBy=updatedAt&sortOrder=desc')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+
+    const dates = response.body.data.qrCodes.map(
+      (qr) => new Date(qr.updated_at).getTime(),
+    )
+
+    expect(dates).toEqual([...dates].sort((a, b) => b - a))
+  })
+
+  it('should reject an invalid sort field', async () => {
+    const response = await request(app)
+      .get('/api/qr?sortBy=invalid')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(400)
+  })
+
+  it('should reject an invalid sort direction', async () => {
+    const response = await request(app)
+      .get('/api/qr?sortOrder=random')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(400)
+  })
 })
 
 afterAll(async () => {
