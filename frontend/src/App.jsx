@@ -1,41 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import './App.css'
 
-const initialQRCodes = [
-  {
-    id: 1,
-    title: 'Company Website',
-    destination: 'https://example.com',
-    type: 'URL',
-    status: 'Active',
-    created: 'Today',
-  },
-  {
-    id: 2,
-    title: 'Product Documentation',
-    destination: 'https://docs.example.com',
-    type: 'URL',
-    status: 'Active',
-    created: 'Yesterday',
-  },
-  {
-    id: 3,
-    title: 'Contact Information',
-    destination: 'Name: SmartQR Support',
-    type: 'Text',
-    status: 'Active',
-    created: 'Nov 08, 2026',
-  },
-  {
-    id: 4,
-    title: 'Event Registration',
-    destination: 'https://example.com/register',
-    type: 'URL',
-    status: 'Inactive',
-    created: 'Nov 06, 2026',
-  },
-]
+import Auth from './components/Auth'
+import { getToken } from './services/api'
+import { getCurrentUser, logout } from './services/auth.service'
+import { getQrCodes, createQrCode } from './services/qr.service'
 
 const navigation = [
   { label: 'Overview', icon: '◫', target: 'overview' },
@@ -47,8 +17,16 @@ const navigation = [
 const chartValues = [38, 52, 43, 68, 56, 76, 62, 84, 71, 93, 78, 100]
 
 function App() {
+
+  
+  
+  const [user, setUser] = useState(null)
+  const [isCheckingSession, setIsCheckingSession] = useState(true)
+  
   const [activeNav, setActiveNav] = useState('Overview')
-  const [qrCodes, setQrCodes] = useState(initialQRCodes)
+  const [qrCodes, setQrCodes] = useState([])
+  const [isLoadingQrs, setIsLoadingQrs] = useState(false)
+  const [qrListError, setQrListError] = useState('')
   const [title, setTitle] = useState('')
   const [destination, setDestination] = useState('')
   const [qrType, setQrType] = useState('URL')
@@ -56,8 +34,92 @@ function App() {
   const [generatedTitle, setGeneratedTitle] = useState('')
   const [error, setError] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  
+  const userInitials = user?.name
+  ?.split(' ')
+  .map((part) => part[0])
+  .join('')
+  .slice(0, 2)
+  .toUpperCase()
 
-  const handleGenerate = async (event) => {
+  useEffect(() => {
+    const restoreSession = async () => {
+      if (!getToken()) {
+        setIsCheckingSession(false)
+        return
+      }
+      
+      try {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+      } catch {
+        logout()
+      } finally {
+        setIsCheckingSession(false)
+      }
+    }
+    
+    restoreSession()
+  }, [])
+  
+  useEffect(() => {
+    if (!user) return
+    
+    let isMounted = true
+    
+    const fetchQrCodes = async () => {
+      setIsLoadingQrs(true)
+      setQrListError('')
+      
+      try {
+        const response = await getQrCodes({
+          page: 1,
+          limit: 5,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        })
+        
+        if (!isMounted) return
+        
+        const formattedQrCodes = response.data.qrCodes.map((item) => ({
+          id: item.id,
+          title: item.title,
+          destination: item.destination,
+          type: item.qr_type.toUpperCase(),
+          status: item.is_active ? 'Active' : 'Inactive',
+          created: new Date(item.created_at).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+        }))
+        
+        setQrCodes(formattedQrCodes)
+      } catch (requestError) {
+        if (isMounted) {
+          setQrListError(requestError.message || 'Unable to load QR codes.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingQrs(false)
+        }
+      }
+    }
+    
+    fetchQrCodes()
+    
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+  
+  const handleLogout = () => {
+    logout()
+    setUser(null)
+  }
+
+  
+const handleGenerate = async (event) => {
     event.preventDefault()
     setError('')
     setGeneratedQR('')
@@ -73,6 +135,7 @@ function App() {
     if (qrType === 'URL') {
       try {
         const parsedUrl = new URL(cleanDestination)
+
         if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
           throw new Error('Invalid protocol')
         }
@@ -85,6 +148,16 @@ function App() {
     try {
       setIsGenerating(true)
 
+      // Save the QR code in PostgreSQL through the backend.
+      const response = await createQrCode({
+        title: cleanTitle,
+        destination: cleanDestination,
+        qrType: 'static',
+      })
+
+      const savedQr = response.data.qrCode
+
+      // Generate a downloadable QR image in the browser.
       const image = await QRCode.toDataURL(cleanDestination, {
         width: 280,
         margin: 2,
@@ -98,26 +171,32 @@ function App() {
       setGeneratedQR(image)
       setGeneratedTitle(cleanTitle)
 
+      // Add the database record to the dashboard.
       setQrCodes((previous) => [
         {
-          id: Date.now(),
-          title: cleanTitle,
-          destination: cleanDestination,
-          type: qrType,
-          status: 'Active',
-          created: 'Just now',
+          id: savedQr.id,
+          title: savedQr.title,
+          destination: savedQr.destination,
+          type: savedQr.qr_type.toUpperCase(),
+          status: savedQr.is_active ? 'Active' : 'Inactive',
+          created: new Date(savedQr.created_at).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
         },
         ...previous,
       ])
 
       setTitle('')
       setDestination('')
-    } catch {
-      setError('Unable to generate the QR code. Please try again.')
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to create the QR code.')
     } finally {
       setIsGenerating(false)
     }
   }
+
 
   const scrollToSection = (target, label) => {
     setActiveNav(label)
@@ -131,6 +210,18 @@ function App() {
   const activeQRCodes = qrCodes.filter(
     (item) => item.status === 'Active',
   ).length
+
+  if (isCheckingSession) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-background">
+        <p className="text-sm text-text-muted">Loading your workspace...</p>
+      </main>
+    )
+  }
+
+  if (!user) {
+    return <Auth onAuthenticated={setUser} />
+  }
 
   return (
     <div className="app-shell">
@@ -164,18 +255,24 @@ function App() {
             <span className="coming-soon">COMING SOON</span>
           </div>
 
-          <button
-            className="profile"
-            type="button"
-            onClick={() => setActiveNav('Overview')}
-          >
-            <span className="avatar">SU</span>
+          <div className="profile">
+            <span className="avatar">{userInitials || 'U'}</span>
+
             <span className="profile-info">
-              <strong>Workspace User</strong>
-              <small>Free workspace</small>
+              <strong>{user.name}</strong>
+              <small>{user.email}</small>
             </span>
-            <span className="profile-menu">···</span>
-          </button>
+
+            <button
+              type="button"
+              className="profile-menu"
+              onClick={handleLogout}
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              ↪
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -433,7 +530,25 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {qrCodes.slice(0, 5).map((item) => (
+                {isLoadingQrs && (
+                  <tr>
+                    <td colSpan="5">Loading QR codes...</td>
+                  </tr>
+                )}
+
+                {!isLoadingQrs && qrListError && (
+                  <tr>
+                    <td colSpan="5">{qrListError}</td>
+                  </tr>
+                )}
+
+                {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
+                  <tr>
+                    <td colSpan="5">No QR codes found. Create your first QR code!</td>
+                  </tr>
+                )}
+
+                {!isLoadingQrs && !qrListError && qrCodes.map((item) => (
                   <tr key={item.id}>
                     <td>
                       <div className="qr-name">
@@ -441,15 +556,21 @@ function App() {
                         <strong>{item.title}</strong>
                       </div>
                     </td>
+
                     <td className="destination-cell" title={item.destination}>
                       {item.destination}
                     </td>
-                    <td><span className="type-badge">{item.type}</span></td>
+
+                    <td>
+                      <span className="type-badge">{item.type}</span>
+                    </td>
+
                     <td>
                       <span className={`status-badge ${item.status.toLowerCase()}`}>
                         <span></span>{item.status}
                       </span>
                     </td>
+
                     <td className="date-cell">{item.created}</td>
                   </tr>
                 ))}
