@@ -53,3 +53,9 @@ export const updateQrCode = async (id, qrData) => {
     body: JSON.stringify(qrData),
   })
 }
+
+export const getQrAnalytics = async (id) => {
+  return apiRequest(`/qr/${id}/analytics`, {
+    method: 'GET',
+  })
+}

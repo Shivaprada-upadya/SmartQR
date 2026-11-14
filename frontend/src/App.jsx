@@ -5,7 +5,7 @@ import './App.css'
 import Auth from './components/Auth'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
-import { getQrCodes, createQrCode, deleteQrCode, updateQrCode, } from './services/qr.service'
+import { getQrCodes, createQrCode, deleteQrCode, updateQrCode, getQrAnalytics} from './services/qr.service'
 
 const navigation = [
   { label: 'Overview', icon: '◫', target: 'overview' },
@@ -14,11 +14,7 @@ const navigation = [
   { label: 'Analytics', icon: '▥', target: 'analytics' },
 ]
 
-const chartValues = [38, 52, 43, 68, 56, 76, 62, 84, 71, 93, 78, 100]
-
 function App() {
-
-  
   
   const [user, setUser] = useState(null)
   const [isCheckingSession, setIsCheckingSession] = useState(true)
@@ -26,6 +22,10 @@ function App() {
   const [activeNav, setActiveNav] = useState('Overview')
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
+  const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState('')
+  const [analytics, setAnalytics] = useState(null)
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState('')
   const [qrListError, setQrListError] = useState('')
   const [title, setTitle] = useState('')
   const [destination, setDestination] = useState('')
@@ -119,6 +119,51 @@ function App() {
       isMounted = false
     }
   }, [user])
+
+    // Select the first QR code for analytics by default
+  useEffect(() => {
+    if (!selectedAnalyticsQr && qrCodes.length > 0) {
+      setSelectedAnalyticsQr(String(qrCodes[0].id))
+    }
+  }, [qrCodes, selectedAnalyticsQr])
+
+  // Fetch analytics for the selected QR code
+  useEffect(() => {
+    if (!user || !selectedAnalyticsQr) return
+
+    let isMounted = true
+
+    const fetchAnalytics = async () => {
+      setIsLoadingAnalytics(true)
+      setAnalyticsError('')
+      setAnalytics(null)
+
+      try {
+        const response = await getQrAnalytics(selectedAnalyticsQr)
+
+        if (!isMounted) return
+
+        setAnalytics(response.data)
+      } catch (requestError) {
+        if (isMounted) {
+          setAnalytics(null)
+          setAnalyticsError(
+            requestError.message || 'Unable to load QR analytics.',
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingAnalytics(false)
+        }
+      }
+    }
+
+    fetchAnalytics()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user, selectedAnalyticsQr])
   
   const handleLogout = () => {
     logout()
@@ -300,6 +345,51 @@ const handleGenerate = async (event) => {
     (item) => item.status === 'Active',
   ).length
 
+    // Analytics values for the selected QR code
+  const dailyScans = analytics?.dailyScans ?? []
+
+  const totalScans = Number(analytics?.summary?.total_scans ?? 0)
+  const todayScans = Number(analytics?.summary?.today_scans ?? 0)
+
+  const averageScans = dailyScans.length
+    ? (
+        dailyScans.reduce(
+          (total, item) => total + Number(item.scans),
+          0,
+        ) / dailyScans.length
+      ).toFixed(1)
+    : '0'
+
+  // Scale chart points based on the actual scan counts
+  const maxDailyScans = Math.max(
+    ...dailyScans.map((item) => Number(item.scans)),
+    0,
+  )
+
+  const chartAxisMax = Math.max(
+    4,
+    Math.ceil(maxDailyScans / 4) * 4,
+  )
+
+  const chartYAxisLabels = Array.from(
+    { length: 5 },
+    (_, index) => chartAxisMax - (index * chartAxisMax) / 4,
+  )
+
+  const chartPoints = dailyScans.map((item, index) => {
+    const x =
+      index * (600 / Math.max(dailyScans.length - 1, 1))
+
+    const y =
+      190 - (Number(item.scans) / chartAxisMax) * 160
+
+    return `${x},${y}`
+  })
+
+  const chartPolygonPoints = chartPoints.length
+    ? `0,190 ${chartPoints.join(' ')} 600,190`
+    : ''
+
   if (isCheckingSession) {
     return (
       <main className="grid min-h-screen place-items-center bg-background">
@@ -410,13 +500,16 @@ const handleGenerate = async (event) => {
 
           <article className="stat-card">
             <div className="stat-top">
-              <span>Total Scans</span>
+              <span>Selected QR Scans</span>
               <span className="stat-icon blue">⌁</span>
             </div>
-            <div className="stat-value">12,840</div>
+            <div className="stat-value">
+              {isLoadingAnalytics ? '...' : totalScans.toLocaleString('en-IN')}
+            </div>
             <div className="stat-foot">
-              <span className="trend">↑ 18.2%</span>
-              <span>vs last month</span>
+              <span className="neutral-trend">
+                {todayScans.toLocaleString('en-IN')} today
+              </span>
             </div>
           </article>
 
@@ -433,13 +526,14 @@ const handleGenerate = async (event) => {
 
           <article className="stat-card">
             <div className="stat-top">
-              <span>Average Scans</span>
+              <span>Average Daily Scans</span>
               <span className="stat-icon orange">↗</span>
             </div>
-            <div className="stat-value">428</div>
+            <div className="stat-value">
+              {isLoadingAnalytics ? '...' : averageScans}
+            </div>
             <div className="stat-foot">
-              <span className="trend">↑ 8.4%</span>
-              <span>vs last month</span>
+              <span className="neutral-trend">Last 7 days</span>
             </div>
           </article>
         </section>
@@ -451,26 +545,46 @@ const handleGenerate = async (event) => {
                 <h3>Scan Analytics</h3>
                 <p>Track how your QR codes perform over time.</p>
               </div>
-              <select className="period-select" defaultValue="7">
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
+              <select
+                className="period-select"
+                value={selectedAnalyticsQr}
+                onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
+                disabled={qrCodes.length === 0}
+              >
+                {qrCodes.length === 0 ? (
+                  <option value="">No QR codes available</option>
+                ) : (
+                  qrCodes.map((qr) => (
+                    <option key={qr.id} value={String(qr.id)}>
+                      {qr.title}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
             <div className="chart-summary">
-              <strong>8,249</strong>
-              <span className="trend">↑ 14.8%</span>
-              <small>scans this week</small>
+              <strong>
+                {isLoadingAnalytics
+                  ? '...'
+                  : dailyScans.reduce(
+                      (total, item) => total + Number(item.scans),
+                      0,
+                    ).toLocaleString('en-IN')}
+              </strong>
+              <span className="trend">
+                {todayScans.toLocaleString('en-IN')} today
+              </span>
+              <small>scans in the last 7 days</small>
             </div>
 
             <div className="chart">
               <div className="chart-y-labels">
-                <span>1,000</span>
-                <span>750</span>
-                <span>500</span>
-                <span>250</span>
-                <span>0</span>
+                {chartYAxisLabels.map((value, index) => (
+                  <span key={index}>
+                    {Math.round(value).toLocaleString('en-IN')}
+                  </span>
+                ))}
               </div>
               <div className="chart-plot">
                 <div className="chart-grid-lines">
@@ -480,7 +594,7 @@ const handleGenerate = async (event) => {
                   viewBox="0 0 600 190"
                   preserveAspectRatio="none"
                   role="img"
-                  aria-label="Illustrative weekly scan activity chart"
+                  aria-label="Daily QR code scan activity for the selected QR code"
                 >
                   <defs>
                     <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
@@ -489,11 +603,11 @@ const handleGenerate = async (event) => {
                     </linearGradient>
                   </defs>
                   <polygon
-                    points={`0,190 ${chartValues.map((value, index) => `${index * (600 / (chartValues.length - 1))},${190 - value * 1.65}`).join(' ')} 600,190`}
+                    points={chartPolygonPoints}
                     fill="url(#chartFill)"
                   />
                   <polyline
-                    points={chartValues.map((value, index) => `${index * (600 / (chartValues.length - 1))},${190 - value * 1.65}`).join(' ')}
+                    points={chartPoints.join(' ')}
                     fill="none"
                     stroke="#9b7bff"
                     strokeWidth="3"
@@ -503,14 +617,26 @@ const handleGenerate = async (event) => {
                   />
                 </svg>
                 <div className="chart-x-labels">
-                  <span>Mon</span><span>Tue</span><span>Wed</span>
-                  <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                  {dailyScans.map((item) => {
+                    const date = new Date(`${item.date}`)
+                    return (
+                      <span key={item.date}>
+                        {date.toLocaleDateString('en-IN', {
+                          weekday: 'short',
+                        })}
+                      </span>
+                    )
+                  })}
                 </div>
               </div>
             </div>
             <div className="chart-note">
               <span className="legend-dot"></span> QR code scans
-              <span className="sample-note">Sample analytics data</span>
+              <span className="sample-note">
+                {isLoadingAnalytics
+                  ? 'Loading analytics...'
+                  : analyticsError || 'Live analytics data'}
+              </span>
             </div>
           </article>
 
