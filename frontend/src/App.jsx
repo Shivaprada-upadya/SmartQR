@@ -5,7 +5,7 @@ import './App.css'
 import Auth from './components/Auth'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
-import { getQrCodes, createQrCode } from './services/qr.service'
+import { getQrCodes, createQrCode, deleteQrCode, updateQrCode, } from './services/qr.service'
 
 const navigation = [
   { label: 'Overview', icon: '◫', target: 'overview' },
@@ -34,6 +34,12 @@ function App() {
   const [generatedTitle, setGeneratedTitle] = useState('')
   const [error, setError] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+
+  const [editingQr, setEditingQr] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDestination, setEditDestination] = useState('')
+  const [editError, setEditError] = useState('')
+  const [isUpdating, setIsUpdating] = useState(false)
   
   const userInitials = user?.name
   ?.split(' ')
@@ -118,7 +124,77 @@ function App() {
     setUser(null)
   }
 
-  
+  const handleDeleteQr = async (id) => {
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this QR code?',
+  )
+
+  if (!confirmed) return
+
+  try {
+    await deleteQrCode(id)
+
+    setQrCodes((previous) =>
+      previous.filter((item) => item.id !== id),
+    )
+  } catch (requestError) {
+    setQrListError(
+      requestError.message || 'Unable to delete the QR code.',
+    )
+  }
+}
+
+const handleUpdateQr = async (event) => {
+  event.preventDefault()
+  setEditError('')
+
+  const cleanTitle = editTitle.trim()
+  const cleanDestination = editDestination.trim()
+
+  if (!cleanTitle || !cleanDestination) {
+    setEditError('Please enter both title and destination.')
+    return
+  }
+
+  try {
+    setIsUpdating(true)
+
+    await updateQrCode(editingQr.id, {
+      title: cleanTitle,
+      destination: cleanDestination,
+    })
+
+    setQrCodes((previous) =>
+      previous.map((item) =>
+        item.id === editingQr.id
+          ? {
+              ...item,
+              title: cleanTitle,
+              destination: cleanDestination,
+            }
+          : item,
+      ),
+    )
+
+    setEditingQr(null)
+    setEditTitle('')
+    setEditDestination('')
+  } catch (requestError) {
+    setEditError(
+      requestError.message || 'Unable to update the QR code.',
+    )
+  } finally {
+    setIsUpdating(false)
+  }
+}
+
+  const handleEditClick = (item) => {
+    setEditingQr(item)
+    setEditTitle(item.title)
+    setEditDestination(item.destination)
+    setEditError('')
+  }
+ 
 const handleGenerate = async (event) => {
     event.preventDefault()
     setError('')
@@ -527,24 +603,25 @@ const handleGenerate = async (event) => {
                   <th>TYPE</th>
                   <th>STATUS</th>
                   <th>CREATED</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingQrs && (
                   <tr>
-                    <td colSpan="5">Loading QR codes...</td>
+                    <td colSpan="6">Loading QR codes...</td>
                   </tr>
                 )}
 
                 {!isLoadingQrs && qrListError && (
                   <tr>
-                    <td colSpan="5">{qrListError}</td>
+                    <td colSpan="6">{qrListError}</td>
                   </tr>
                 )}
 
                 {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
                   <tr>
-                    <td colSpan="5">No QR codes found. Create your first QR code!</td>
+                    <td colSpan="6">No QR codes found. Create your first QR code!</td>
                   </tr>
                 )}
 
@@ -572,12 +649,119 @@ const handleGenerate = async (event) => {
                     </td>
 
                     <td className="date-cell">{item.created}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          type="button"
+                          className="edit-button"
+                          onClick={() => handleEditClick(item)}
+                          aria-label={`Edit ${item.title}`}
+                          title="Edit QR code"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="delete-button"
+                          onClick={() => handleDeleteQr(item.id)}
+                          aria-label={`Delete ${item.title}`}
+                          title="Delete QR code"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </section>
+
+        {editingQr && (
+          <div className="edit-modal-overlay">
+            <div
+              className="edit-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-modal-title"
+            >
+              <div className="edit-modal-header">
+                <div>
+                  <h3 id="edit-modal-title">Edit QR Code</h3>
+                  <p>Update your QR code information.</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="modal-close-button"
+                  onClick={() => setEditingQr(null)}
+                  aria-label="Close edit form"
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateQr}>
+                <div className="edit-form-group">
+                  <label htmlFor="edit-title">QR Code Title</label>
+                  <input
+                    id="edit-title"
+                    type="text"
+                    value={editTitle}
+                    onChange={(event) =>
+                      setEditTitle(event.target.value)
+                    }
+                    maxLength={150}
+                    required
+                  />
+                </div>
+
+                <div className="edit-form-group">
+                  <label htmlFor="edit-destination">
+                    Destination / Content
+                  </label>
+                  <textarea
+                    id="edit-destination"
+                    value={editDestination}
+                    onChange={(event) =>
+                      setEditDestination(event.target.value)
+                    }
+                    rows={4}
+                    maxLength={2048}
+                    required
+                  />
+                </div>
+
+                {editError && (
+                  <p className="form-error" role="alert">
+                    {editError}
+                  </p>
+                )}
+
+                <div className="edit-modal-actions">
+                  <button
+                    type="button"
+                    className="cancel-edit-button"
+                    onClick={() => setEditingQr(null)}
+                    disabled={isUpdating}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <footer className="footer">
           <span>© 2026 SmartQR. Built with care.</span>

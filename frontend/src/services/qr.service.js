@@ -40,3 +40,16 @@ export const createQrCode = async (qrData) => {
     body: JSON.stringify(qrData),
   })
 }
+
+export const deleteQrCode = async (id) => {
+  return apiRequest(`/qr/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export const updateQrCode = async (id, qrData) => {
+  return apiRequest(`/qr/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(qrData),
+  })
+}
