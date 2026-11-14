@@ -30,6 +30,7 @@ function App() {
   const [title, setTitle] = useState('')
   const [destination, setDestination] = useState('')
   const [qrType, setQrType] = useState('URL')
+  const [qrMode, setQrMode] = useState('static')
   const [generatedQR, setGeneratedQR] = useState('')
   const [generatedTitle, setGeneratedTitle] = useState('')
   const [error, setError] = useState('')
@@ -208,7 +209,7 @@ const handleGenerate = async (event) => {
       return
     }
 
-    if (qrType === 'URL') {
+    if (qrType === 'URL' || qrMode === 'dynamic') {
       try {
         const parsedUrl = new URL(cleanDestination)
 
@@ -228,13 +229,25 @@ const handleGenerate = async (event) => {
       const response = await createQrCode({
         title: cleanTitle,
         destination: cleanDestination,
-        qrType: 'static',
+        qrType: qrMode,
       })
 
       const savedQr = response.data.qrCode
 
+      if (qrMode === 'dynamic' && !savedQr.short_code) {
+        throw new Error('Dynamic QR code was created without a short code.')
+      }
+
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+
+      const qrContent =
+        qrMode === 'dynamic'
+          ? new URL(`/r/${savedQr.short_code}`, apiBaseUrl).toString()
+          : cleanDestination
+
       // Generate a downloadable QR image in the browser.
-      const image = await QRCode.toDataURL(cleanDestination, {
+      const image = await QRCode.toDataURL(qrContent, {
         width: 280,
         margin: 2,
         errorCorrectionLevel: 'H',
@@ -522,13 +535,31 @@ const handleGenerate = async (event) => {
               />
 
               <label htmlFor="qr-type">Content Type</label>
+              <label htmlFor="qr-mode">QR Code Mode</label>
+                <select
+                  id="qr-mode"
+                  value={qrMode}
+                  onChange={(event) => {
+                    const mode = event.target.value
+                    setQrMode(mode)
+
+                    if (mode === 'dynamic') {
+                      setQrType('URL')
+                    }
+                  }}
+                >
+                  <option value="static">Static QR Code</option>
+                  <option value="dynamic">Dynamic QR Code</option>
+                </select>
               <select
                 id="qr-type"
                 value={qrType}
                 onChange={(event) => setQrType(event.target.value)}
               >
                 <option value="URL">Website URL</option>
-                <option value="Text">Plain Text</option>
+                <option value="Text" disabled={qrMode === 'dynamic'}>
+                  Plain Text
+                </option>
               </select>
 
               <label htmlFor="qr-content">
