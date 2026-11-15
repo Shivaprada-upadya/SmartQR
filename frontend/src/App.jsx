@@ -22,7 +22,7 @@ function App() {
   const [activeNav, setActiveNav] = useState('Overview')
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
-  const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState('')
+  const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState(null)
   const [analytics, setAnalytics] = useState(null)
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
   const [analyticsError, setAnalyticsError] = useState('')
@@ -102,6 +102,19 @@ function App() {
         }))
         
         setQrCodes(formattedQrCodes)
+
+        setSelectedAnalyticsQr((current) => {
+          if (
+            current &&
+            formattedQrCodes.some((qr) => String(qr.id) === current)
+          ) {
+            return current
+          }
+
+          return formattedQrCodes.length > 0
+            ? String(formattedQrCodes[0].id)
+            : ''
+        })
       } catch (requestError) {
         if (isMounted) {
           setQrListError(requestError.message || 'Unable to load QR codes.')
@@ -119,13 +132,6 @@ function App() {
       isMounted = false
     }
   }, [user])
-
-    // Select the first QR code for analytics by default
-  useEffect(() => {
-    if (!selectedAnalyticsQr && qrCodes.length > 0) {
-      setSelectedAnalyticsQr(String(qrCodes[0].id))
-    }
-  }, [qrCodes, selectedAnalyticsQr])
 
   // Fetch analytics for the selected QR code
   useEffect(() => {
@@ -345,6 +351,32 @@ const handleGenerate = async (event) => {
     (item) => item.status === 'Active',
   ).length
 
+  const deviceBreakdown = analytics?.deviceBreakdown ?? []
+  const browserBreakdown = analytics?.browserBreakdown ?? []
+  const operatingSystemBreakdown =
+    analytics?.operatingSystemBreakdown ?? []
+  const recentScans = analytics?.recentScans ?? []
+
+  const getBreakdownPercentage = (scans) => {
+    const total = Number(analytics?.summary?.total_scans ?? 0)
+
+    return total > 0
+      ? Math.round((Number(scans) / total) * 100)
+      : 0
+  }
+
+  const formatScanDate = (date) => {
+    if (!date) return 'Unknown date'
+
+    return new Date(date).toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
     // Analytics values for the selected QR code
   const dailyScans = analytics?.dailyScans ?? []
 
@@ -547,7 +579,7 @@ const handleGenerate = async (event) => {
               </div>
               <select
                 className="period-select"
-                value={selectedAnalyticsQr}
+                value={selectedAnalyticsQr || ''}
                 onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
                 disabled={qrCodes.length === 0}
               >
@@ -639,6 +671,146 @@ const handleGenerate = async (event) => {
               </span>
             </div>
           </article>
+                   <section className="analytics-details">
+            <article className="panel breakdown-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>Device Breakdown</h3>
+                  <p>Devices used to scan this QR code.</p>
+                </div>
+              </div>
+
+              {isLoadingAnalytics ? (
+                <p>Loading device data...</p>
+              ) : deviceBreakdown.length === 0 ? (
+                <p>No device scan data available yet.</p>
+              ) : (
+                deviceBreakdown.map((item) => (
+                  <div className="breakdown-item" key={item.device_type}>
+                    <div className="breakdown-label">
+                      <span>{item.device_type || 'Unknown'}</span>
+                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="breakdown-track">
+                      <div
+                        className="breakdown-fill"
+                        style={{
+                          width: `${getBreakdownPercentage(item.scans)}%`,
+                        }}
+                      />
+                    </div>
+                    <small>{getBreakdownPercentage(item.scans)}%</small>
+                  </div>
+                ))
+              )}
+            </article>
+
+            <article className="panel breakdown-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>Browser Breakdown</h3>
+                  <p>Browsers used for QR scans.</p>
+                </div>
+              </div>
+
+              {isLoadingAnalytics ? (
+                <p>Loading browser data...</p>
+              ) : browserBreakdown.length === 0 ? (
+                <p>No browser scan data available yet.</p>
+              ) : (
+                browserBreakdown.map((item) => (
+                  <div className="breakdown-item" key={item.browser}>
+                    <div className="breakdown-label">
+                      <span>{item.browser || 'Unknown'}</span>
+                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="breakdown-track">
+                      <div
+                        className="breakdown-fill"
+                        style={{
+                          width: `${getBreakdownPercentage(item.scans)}%`,
+                        }}
+                      />
+                    </div>
+                    <small>{getBreakdownPercentage(item.scans)}%</small>
+                  </div>
+                ))
+              )}
+            </article>
+
+            <article className="panel breakdown-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>Operating Systems</h3>
+                  <p>Operating systems used for QR scans.</p>
+                </div>
+              </div>
+
+              {isLoadingAnalytics ? (
+                <p>Loading operating system data...</p>
+              ) : operatingSystemBreakdown.length === 0 ? (
+                <p>No operating system data available yet.</p>
+              ) : (
+                operatingSystemBreakdown.map((item) => (
+                  <div
+                    className="breakdown-item"
+                    key={item.operating_system}
+                  >
+                    <div className="breakdown-label">
+                      <span>{item.operating_system || 'Unknown'}</span>
+                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="breakdown-track">
+                      <div
+                        className="breakdown-fill"
+                        style={{
+                          width: `${getBreakdownPercentage(item.scans)}%`,
+                        }}
+                      />
+                    </div>
+                    <small>{getBreakdownPercentage(item.scans)}%</small>
+                  </div>
+                ))
+              )}
+            </article>
+
+            <article className="panel recent-scans-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>Recent Scan Activity</h3>
+                  <p>Latest 10 scans for the selected QR code.</p>
+                </div>
+              </div>
+
+              {isLoadingAnalytics ? (
+                <p>Loading recent scans...</p>
+              ) : recentScans.length === 0 ? (
+                <p>No scans recorded yet.</p>
+              ) : (
+                <div className="recent-scans-list">
+                  {recentScans.map((scan) => (
+                    <div className="recent-scan-item" key={scan.id}>
+                      <div>
+                        <strong>
+                          {scan.device_type || 'Unknown device'}
+                        </strong>
+                        <span>
+                          {scan.browser || 'Unknown browser'} ·{' '}
+                          {scan.operating_system || 'Unknown OS'}
+                        </span>
+                        <small>
+                          Referrer: {scan.referrer || 'Direct / Unknown'}
+                        </small>
+                      </div>
+                      <time dateTime={scan.scanned_at}>
+                        {formatScanDate(scan.scanned_at)}
+                      </time>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          </section>
 
           <article className="panel create-panel" id="create">
             <div className="panel-heading">
