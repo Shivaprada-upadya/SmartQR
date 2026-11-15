@@ -70,3 +70,7 @@ export const paginationQuerySchema = z.object({
     .enum(['asc', 'desc'])
     .default('desc'),
 })
+
+export const analyticsQuerySchema = z.object({
+  range: z.enum(['7d', '30d', '90d', 'all']).default('7d'),
+})

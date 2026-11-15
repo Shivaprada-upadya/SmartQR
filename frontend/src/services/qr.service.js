@@ -54,8 +54,11 @@ export const updateQrCode = async (id, qrData) => {
   })
 }
 
-export const getQrAnalytics = async (id) => {
-  return apiRequest(`/qr/${id}/analytics`, {
+
+export const getQrAnalytics = async (id, range = '7d') => {
+  const params = new URLSearchParams({ range })
+
+  return apiRequest(`/qr/${id}/analytics?${params.toString()}`, {
     method: 'GET',
   })
 }

@@ -94,6 +94,7 @@ export const getQrAnalyticsController = async (req, res) => {
   const analytics = await getQrAnalytics(
     req.params.id,
     req.user.userId,
+    req.validatedQuery.range,
   )
 
   res.status(200).json({

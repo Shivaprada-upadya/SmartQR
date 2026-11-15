@@ -23,6 +23,7 @@ function App() {
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
   const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState(null)
+  const [analyticsRange, setAnalyticsRange] = useState('7d')
   const [analytics, setAnalytics] = useState(null)
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
   const [analyticsError, setAnalyticsError] = useState('')
@@ -145,7 +146,7 @@ function App() {
       setAnalytics(null)
 
       try {
-        const response = await getQrAnalytics(selectedAnalyticsQr)
+        const response = await getQrAnalytics(selectedAnalyticsQr, analyticsRange)
 
         if (!isMounted) return
 
@@ -169,7 +170,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [user, selectedAnalyticsQr])
+  }, [user, selectedAnalyticsQr, analyticsRange])
   
   const handleLogout = () => {
     logout()
@@ -380,6 +381,15 @@ const handleGenerate = async (event) => {
     // Analytics values for the selected QR code
   const dailyScans = analytics?.dailyScans ?? []
 
+  const analyticsRangeLabels = {
+    '7d': 'Last 7 days',
+    '30d': 'Last 30 days',
+    '90d': 'Last 90 days',
+    all: 'All time',
+  }
+
+  const selectedRangeLabel = analyticsRangeLabels[analyticsRange]
+
   const totalScans = Number(analytics?.summary?.total_scans ?? 0)
   const todayScans = Number(analytics?.summary?.today_scans ?? 0)
 
@@ -421,6 +431,11 @@ const handleGenerate = async (event) => {
   const chartPolygonPoints = chartPoints.length
     ? `0,190 ${chartPoints.join(' ')} 600,190`
     : ''
+
+  const chartLabelInterval = Math.max(
+    1,
+    Math.ceil(dailyScans.length / 7),
+  )
 
   if (isCheckingSession) {
     return (
@@ -565,7 +580,7 @@ const handleGenerate = async (event) => {
               {isLoadingAnalytics ? '...' : averageScans}
             </div>
             <div className="stat-foot">
-              <span className="neutral-trend">Last 7 days</span>
+              <span className="neutral-trend">{selectedRangeLabel}</span>
             </div>
           </article>
         </section>
@@ -583,6 +598,17 @@ const handleGenerate = async (event) => {
                 onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
                 disabled={qrCodes.length === 0}
               >
+                <select
+                  className="period-select"
+                  value={analyticsRange}
+                  onChange={(event) => setAnalyticsRange(event.target.value)}
+                  aria-label="Analytics date range"
+                >
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="all">All time</option>
+                </select>
                 {qrCodes.length === 0 ? (
                   <option value="">No QR codes available</option>
                 ) : (
@@ -599,15 +625,12 @@ const handleGenerate = async (event) => {
               <strong>
                 {isLoadingAnalytics
                   ? '...'
-                  : dailyScans.reduce(
-                      (total, item) => total + Number(item.scans),
-                      0,
-                    ).toLocaleString('en-IN')}
+                  : totalScans.toLocaleString('en-IN')}
               </strong>
               <span className="trend">
                 {todayScans.toLocaleString('en-IN')} today
               </span>
-              <small>scans in the last 7 days</small>
+              <small>scans in {selectedRangeLabel.toLowerCase()}</small>
             </div>
 
             <div className="chart">
@@ -649,13 +672,28 @@ const handleGenerate = async (event) => {
                   />
                 </svg>
                 <div className="chart-x-labels">
-                  {dailyScans.map((item) => {
-                    const date = new Date(`${item.date}`)
+                  {dailyScans.map((item, index) => {
+                    const isLast = index === dailyScans.length - 1
+
+                    if (
+                      index % chartLabelInterval !== 0 &&
+                      !isLast
+                    ) {
+                      return null
+                    }
+
+                    const date = new Date(`${item.date}T00:00:00`)
+
                     return (
                       <span key={item.date}>
-                        {date.toLocaleDateString('en-IN', {
-                          weekday: 'short',
-                        })}
+                        {analyticsRange === '7d'
+                          ? date.toLocaleDateString('en-IN', {
+                              weekday: 'short',
+                            })
+                          : date.toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
                       </span>
                     )
                   })}

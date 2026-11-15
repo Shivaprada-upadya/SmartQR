@@ -290,10 +290,18 @@ export const recordQrScan = async (
   )
 }
 
-export const getQrAnalytics = async (qrId, userId) => {
+
+export const getQrAnalytics = async (qrId, userId, range = '7d') => {
+  // Number of days to include in each date range.
+  const rangeDays = {
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+  }
+
   // Verify that this QR code belongs to the logged-in user.
   const qrResult = await pool.query(
-    `SELECT id, title, qr_type
+    `SELECT id, title, qr_type, created_at
      FROM qr_codes
      WHERE id = $1 AND user_id = $2`,
     [qrId, userId],
@@ -305,26 +313,48 @@ export const getQrAnalytics = async (qrId, userId) => {
     throw error
   }
 
-  // Total scans and today's scans.
+  // For all-time analytics, start from the QR code creation date.
+  const rangeStart =
+    range === 'all' ? qrResult.rows[0].created_at : null
+
+  const days = rangeDays[range] ?? null
+
+  // Shared date-range condition for analytics queries.
+  const rangeParams = [qrId, rangeStart, days]
+
+  // Scan summary for the selected date range.
   const summaryResult = await pool.query(
     `SELECT
-       COUNT(*)::int AS total_scans,
+       COUNT(*) FILTER (
+         WHERE scanned_at >= COALESCE(
+           $2::timestamptz,
+           CURRENT_DATE - (($3::int - 1) * INTERVAL '1 day')
+         )
+         AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
+       )::int AS total_scans,
+
        COUNT(*) FILTER (
          WHERE scanned_at >= CURRENT_DATE
          AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
-       )::int AS today_scans
+       )::int AS today_scans,
+
+       COUNT(*)::int AS all_time_scans
+
      FROM qr_scans
      WHERE qr_code_id = $1`,
-    [qrId],
+    rangeParams,
   )
 
-  // Daily scans for the last seven days, including zero-scan days.
+  // Daily scans for the selected range, including zero-scan days.
   const dailyResult = await pool.query(
     `SELECT
        days.day::date AS date,
        COUNT(scans.id)::int AS scans
      FROM generate_series(
-       CURRENT_DATE - INTERVAL '6 days',
+       COALESCE(
+         $2::date,
+         CURRENT_DATE - ($3::int - 1)
+       ),
        CURRENT_DATE,
        INTERVAL '1 day'
      ) AS days(day)
@@ -334,46 +364,61 @@ export const getQrAnalytics = async (qrId, userId) => {
        AND scans.scanned_at < days.day + INTERVAL '1 day'
      GROUP BY days.day
      ORDER BY days.day`,
-    [qrId],
+    rangeParams,
   )
 
-  // Device statistics.
+  // Device statistics for the selected range.
   const deviceResult = await pool.query(
     `SELECT
        device_type,
        COUNT(*)::int AS scans
      FROM qr_scans
      WHERE qr_code_id = $1
+       AND scanned_at >= COALESCE(
+         $2::timestamptz,
+         CURRENT_DATE - (($3::int - 1) * INTERVAL '1 day')
+       )
+       AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
      GROUP BY device_type
      ORDER BY scans DESC`,
-    [qrId],
+    rangeParams,
   )
 
-  // Browser statistics.
+  // Browser statistics for the selected range.
   const browserResult = await pool.query(
     `SELECT
        COALESCE(browser, 'Unknown') AS browser,
        COUNT(*)::int AS scans
      FROM qr_scans
      WHERE qr_code_id = $1
+       AND scanned_at >= COALESCE(
+         $2::timestamptz,
+         CURRENT_DATE - (($3::int - 1) * INTERVAL '1 day')
+       )
+       AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
      GROUP BY browser
      ORDER BY scans DESC`,
-    [qrId],
+    rangeParams,
   )
 
-  // Operating system statistics.
+  // Operating system statistics for the selected range.
   const osResult = await pool.query(
     `SELECT
        COALESCE(operating_system, 'Unknown') AS operating_system,
        COUNT(*)::int AS scans
      FROM qr_scans
      WHERE qr_code_id = $1
+       AND scanned_at >= COALESCE(
+         $2::timestamptz,
+         CURRENT_DATE - (($3::int - 1) * INTERVAL '1 day')
+       )
+       AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
      GROUP BY operating_system
      ORDER BY scans DESC`,
-    [qrId],
+    rangeParams,
   )
 
-  // Latest ten scans.
+  // Latest ten scans within the selected range.
   const recentResult = await pool.query(
     `SELECT
        id,
@@ -384,9 +429,14 @@ export const getQrAnalytics = async (qrId, userId) => {
        referrer
      FROM qr_scans
      WHERE qr_code_id = $1
+       AND scanned_at >= COALESCE(
+         $2::timestamptz,
+         CURRENT_DATE - (($3::int - 1) * INTERVAL '1 day')
+       )
+       AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
      ORDER BY scanned_at DESC
      LIMIT 10`,
-    [qrId],
+    rangeParams,
   )
 
   return {
@@ -399,5 +449,3 @@ export const getQrAnalytics = async (qrId, userId) => {
     recentScans: recentResult.rows,
   }
 }
-
-
