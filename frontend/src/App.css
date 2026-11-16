@@ -1082,3 +1082,19 @@ tbody tr:last-child td {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+.export-error {
+  color: #ff8585;
+  font-size: 11px;
+}
+
+.analytics-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.analytics-filters .period-select {
+  max-width: 180px;
+}

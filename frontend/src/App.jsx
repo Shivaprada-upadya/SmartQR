@@ -14,6 +14,16 @@ const navigation = [
   { label: 'Analytics', icon: '▥', target: 'analytics' },
 ]
 
+const getSafeFilename = (title) => {
+  const filename = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return filename || 'smartqr-code'
+}
+
 function App() {
   
   const [user, setUser] = useState(null)
@@ -34,6 +44,9 @@ function App() {
   const [qrMode, setQrMode] = useState('static')
   const [generatedQR, setGeneratedQR] = useState('')
   const [generatedTitle, setGeneratedTitle] = useState('')
+  const [generatedQRContent, setGeneratedQRContent] = useState('')
+  const [qrExportSize, setQrExportSize] = useState('512')
+  const [exportError, setExportError] = useState('')
   const [error, setError] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -93,6 +106,7 @@ function App() {
           id: item.id,
           title: item.title,
           destination: item.destination,
+          short_code: item.short_code,
           type: item.qr_type.toUpperCase(),
           status: item.is_active ? 'Active' : 'Inactive',
           created: new Date(item.created_at).toLocaleDateString('en-IN', {
@@ -311,6 +325,8 @@ const handleGenerate = async (event) => {
 
       setGeneratedQR(image)
       setGeneratedTitle(cleanTitle)
+      setGeneratedQRContent(qrContent)
+      setExportError('')
 
       // Add the database record to the dashboard.
       setQrCodes((previous) => [
@@ -318,6 +334,7 @@ const handleGenerate = async (event) => {
           id: savedQr.id,
           title: savedQr.title,
           destination: savedQr.destination,
+          short_code: savedQr.short_code,
           type: savedQr.qr_type.toUpperCase(),
           status: savedQr.is_active ? 'Active' : 'Inactive',
           created: new Date(savedQr.created_at).toLocaleDateString('en-IN', {
@@ -345,6 +362,68 @@ const handleGenerate = async (event) => {
       behavior: 'smooth',
       block: 'start',
     })
+  }
+
+    const getQrExportContent = (qr) => {
+    if (qr.type !== 'DYNAMIC') {
+      return qr.destination
+    }
+
+    if (!qr.short_code) {
+      throw new Error('Dynamic QR code is missing its short code.')
+    }
+
+    const apiBaseUrl =
+      import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+
+    return new URL(`/r/${qr.short_code}`, apiBaseUrl).toString()
+  }
+
+    const handleDownloadQr = async (content, qrTitle, format) => {
+    setExportError('')
+
+    try {
+      const options = {
+        width: Number(qrExportSize),
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: {
+          dark: '#111827',
+          light: '#ffffff',
+        },
+      }
+
+      let downloadUrl
+
+      if (format === 'svg') {
+        const svg = await QRCode.toString(content, {
+          ...options,
+          type: 'svg',
+        })
+
+        const blob = new Blob([svg], {
+          type: 'image/svg+xml;charset=utf-8',
+        })
+
+        downloadUrl = URL.createObjectURL(blob)
+      } else {
+        downloadUrl = await QRCode.toDataURL(content, options)
+      }
+
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `${getSafeFilename(qrTitle)}.${format}`
+
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      if (format === 'svg') {
+        URL.revokeObjectURL(downloadUrl)
+      }
+    } catch {
+      setExportError(`Unable to export the QR code as ${format.toUpperCase()}.`)
+    }
   }
 
   const totalQRCodes = qrCodes.length
@@ -592,12 +671,26 @@ const handleGenerate = async (event) => {
                 <h3>Scan Analytics</h3>
                 <p>Track how your QR codes perform over time.</p>
               </div>
-              <select
-                className="period-select"
-                value={selectedAnalyticsQr || ''}
-                onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
-                disabled={qrCodes.length === 0}
-              >
+
+              <div className="analytics-filters">
+                <select
+                  className="period-select"
+                  value={selectedAnalyticsQr || ''}
+                  onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
+                  disabled={qrCodes.length === 0}
+                  aria-label="Select QR code"
+                >
+                  {qrCodes.length === 0 ? (
+                    <option value="">No QR codes available</option>
+                  ) : (
+                    qrCodes.map((qr) => (
+                      <option key={qr.id} value={String(qr.id)}>
+                        {qr.title}
+                      </option>
+                    ))
+                  )}
+                </select>
+
                 <select
                   className="period-select"
                   value={analyticsRange}
@@ -609,16 +702,7 @@ const handleGenerate = async (event) => {
                   <option value="90d">Last 90 days</option>
                   <option value="all">All time</option>
                 </select>
-                {qrCodes.length === 0 ? (
-                  <option value="">No QR codes available</option>
-                ) : (
-                  qrCodes.map((qr) => (
-                    <option key={qr.id} value={String(qr.id)}>
-                      {qr.title}
-                    </option>
-                  ))
-                )}
-              </select>
+              </div>
             </div>
 
             <div className="chart-summary">
@@ -930,16 +1014,48 @@ const handleGenerate = async (event) => {
                 <div className="qr-preview">
                   <img src={generatedQR} alt={`QR code for ${generatedTitle}`} />
                 </div>
+
                 <div className="qr-result-info">
                   <strong>{generatedTitle}</strong>
                   <span>QR code generated successfully</span>
-                  <a
-                    className="download-link"
-                    href={generatedQR}
-                    download="smartqr-code.png"
+
+                  <label htmlFor="qr-export-size">Export dimensions</label>
+                  <select
+                    id="qr-export-size"
+                    className="period-select"
+                    value={qrExportSize}
+                    onChange={(event) => setQrExportSize(event.target.value)}
                   >
-                    ↓ Download PNG
-                  </a>
+                    <option value="280">280 × 280</option>
+                    <option value="512">512 × 512</option>
+                    <option value="1024">1024 × 1024</option>
+                  </select>
+
+                  <div className="action-buttons">
+                    <button
+                      type="button"
+                      className="edit-button"
+                      onClick={() =>
+                        handleDownloadQr(generatedQRContent, generatedTitle, 'png')
+                      }
+                    >
+                      ↓ PNG
+                    </button>
+
+                    <button
+                      type="button"
+                      className="edit-button"
+                      onClick={() =>
+                        handleDownloadQr(generatedQRContent, generatedTitle, 'svg')
+                      }
+                    >
+                      ↓ SVG
+                    </button>
+                  </div>
+
+                  {exportError && (
+                    <span className="export-error">{exportError}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -1026,6 +1142,30 @@ const handleGenerate = async (event) => {
                           title="Edit QR code"
                         >
                           Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="edit-button"
+                          onClick={() =>
+                            handleDownloadQr(getQrExportContent(item), item.title, 'png')
+                          }
+                          aria-label={`Download PNG for ${item.title}`}
+                          title="Download PNG"
+                        >
+                          PNG
+                        </button>
+
+                        <button
+                          type="button"
+                          className="edit-button"
+                          onClick={() =>
+                            handleDownloadQr(getQrExportContent(item), item.title, 'svg')
+                          }
+                          aria-label={`Download SVG for ${item.title}`}
+                          title="Download SVG"
+                        >
+                          SVG
                         </button>
 
                         <button
