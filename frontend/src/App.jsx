@@ -7,6 +7,7 @@ import AnalyticsPanel from './components/dashboard/AnalyticsPanel'
 import StatisticsGrid from './components/dashboard/StatisticsGrid'
 import DashboardHeader from './components/layout/DashboardHeader'
 import Sidebar from './components/layout/Sidebar'
+import DeleteConfirmationModal from './components/qr/DeleteConfirmationModal'
 import EditQrModal from './components/qr/EditQrModal'
 import QrCodeCreatePanel from './components/qr/QrCodeCreatePanel'
 import QrCodeManagementPanel from './components/qr/QrCodeManagementPanel'
@@ -82,6 +83,9 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false)
 
   const [editingQr, setEditingQr] = useState(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null)
+  const [deleteConfirmationError, setDeleteConfirmationError] = useState('')
+  const [isDeletingQr, setIsDeletingQr] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDestination, setEditDestination] = useState('')
   const [editError, setEditError] = useState('')
@@ -347,33 +351,77 @@ function App() {
   }
 
   
-  const handleDeleteQr = async (id) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this QR code?',
-    )
+  const handleDeleteQr = (id) => {
+    const qrCode = qrCodes.find((item) => String(item.id) === String(id))
 
-    if (!confirmed) return
+    setDeleteConfirmationError('')
+    setDeleteConfirmation({ type: 'single', id, title: qrCode?.title })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation || isDeletingQr || isBulkManaging) return
+
+    setDeleteConfirmationError('')
+    setIsDeletingQr(true)
+
+    if (deleteConfirmation.type === 'single') {
+      const { id } = deleteConfirmation
+
+      try {
+        await deleteQrCode(id)
+        setOverviewRefreshKey((key) => key + 1)
+        setSelectedQrIds((current) =>
+          current.filter((selectedId) => selectedId !== String(id)),
+        )
+
+        if (String(selectedAnalyticsQr) === String(id)) {
+          setSelectedAnalyticsQr('')
+        }
+
+        if (currentPage > 1 && qrCodes.length === 1) {
+          setCurrentPage((page) => page - 1)
+        } else {
+          setListRefreshKey((key) => key + 1)
+        }
+
+        setDeleteConfirmation(null)
+      } catch (requestError) {
+        const message = requestError.message || 'Unable to delete the QR code.'
+        setDeleteConfirmationError(message)
+        setQrListError(message)
+      } finally {
+        setIsDeletingQr(false)
+      }
+
+      return
+    }
+
+    const ids = deleteConfirmation.ids
+    setBulkActionError('')
+    setBulkActionMessage('')
+    setIsBulkManaging(true)
 
     try {
-      await deleteQrCode(id)
-      setOverviewRefreshKey((key) => key + 1)
-      setSelectedQrIds((current) =>
-        current.filter((selectedId) => selectedId !== String(id)),
-      )
+      const response = await bulkManageQrCodes({ ids, action: 'delete' })
 
-      if (String(selectedAnalyticsQr) === String(id)) {
+      if (ids.includes(String(selectedAnalyticsQr))) {
         setSelectedAnalyticsQr('')
       }
 
-      if (currentPage > 1 && qrCodes.length === 1) {
-        setCurrentPage((page) => page - 1)
-      } else {
-        setListRefreshKey((key) => key + 1)
-      }
+      setSelectedQrIds([])
+      setCurrentPage(1)
+      setListRefreshKey((key) => key + 1)
+      setOverviewRefreshKey((key) => key + 1)
+      setBulkActionMessage(response.message)
+      setDeleteConfirmation(null)
     } catch (requestError) {
-      setQrListError(
-        requestError.message || 'Unable to delete the QR code.',
-      )
+      const message =
+        requestError.message || 'Unable to apply the bulk action.'
+      setDeleteConfirmationError(message)
+      setBulkActionError(message)
+    } finally {
+      setIsDeletingQr(false)
+      setIsBulkManaging(false)
     }
   }
 
@@ -383,11 +431,9 @@ function App() {
     if (ids.length === 0 || isBulkManaging) return
 
     if (action === 'delete') {
-      const confirmed = window.confirm(
-        `Delete ${ids.length} selected QR code${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
-      )
-
-      if (!confirmed) return
+      setDeleteConfirmationError('')
+      setDeleteConfirmation({ type: 'bulk', ids })
+      return
     }
 
     setBulkActionError('')
@@ -396,13 +442,6 @@ function App() {
 
     try {
       const response = await bulkManageQrCodes({ ids, action })
-
-      if (
-        action === 'delete' &&
-        ids.includes(String(selectedAnalyticsQr))
-      ) {
-        setSelectedAnalyticsQr('')
-      }
 
       setSelectedQrIds([])
       setCurrentPage(1)
@@ -765,6 +804,18 @@ const handleGenerate = async (event) => {
           onEditDestinationChange={setEditDestination}
           onSubmit={handleUpdateQr}
           onClose={() => setEditingQr(null)}
+        />
+
+        <DeleteConfirmationModal
+          confirmation={deleteConfirmation}
+          error={deleteConfirmationError}
+          isDeleting={isDeletingQr || isBulkManaging}
+          onConfirm={handleConfirmDelete}
+          onClose={() => {
+            if (isDeletingQr || isBulkManaging) return
+            setDeleteConfirmation(null)
+            setDeleteConfirmationError('')
+          }}
         />
 
         <footer className="footer">
