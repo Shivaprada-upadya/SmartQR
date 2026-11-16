@@ -1,4 +1,12 @@
-import { createQrCode, getUserQrCodes, getQrCodeById, updateQrCode,deleteQrCode, getQrAnalytics } from "../services/qr.service.js";
+import {
+  bulkManageQrCodes,
+  createQrCode,
+  deleteQrCode,
+  getQrAnalytics,
+  getQrCodeById,
+  getUserQrCodes,
+  updateQrCode,
+} from '../services/qr.service.js'
 export const createQr = async (req, res) => {
   const qrCode = await createQrCode({
     ...req.body,
@@ -87,6 +95,30 @@ export const deleteQr = async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'QR code deleted successfully',
+  })
+}
+
+export const bulkManageQr = async (req, res) => {
+  const { action, ids } = req.body
+  const { affectedCount } = await bulkManageQrCodes(
+    req.user.userId,
+    ids,
+    action,
+  )
+
+  const actionPastTense = {
+    activate: 'activated',
+    deactivate: 'deactivated',
+    delete: 'deleted',
+  }[action]
+
+  res.status(200).json({
+    success: true,
+    message: `${affectedCount} QR codes ${actionPastTense} successfully`,
+    data: {
+      action,
+      affectedCount,
+    },
   })
 }
 

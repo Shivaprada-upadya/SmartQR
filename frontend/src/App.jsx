@@ -5,7 +5,14 @@ import './App.css'
 import Auth from './components/Auth'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
-import { getQrCodes, createQrCode, deleteQrCode, updateQrCode, getQrAnalytics} from './services/qr.service'
+import {
+  bulkManageQrCodes,
+  createQrCode,
+  deleteQrCode,
+  getQrAnalytics,
+  getQrCodes,
+  updateQrCode,
+} from './services/qr.service'
 
 const navigation = [
   { label: 'Overview', icon: '◫', target: 'overview' },
@@ -32,8 +39,15 @@ function App() {
   const [activeNav, setActiveNav] = useState('Overview')
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
+  const [selectedQrIds, setSelectedQrIds] = useState([])
+  const [isBulkManaging, setIsBulkManaging] = useState(false)
+  const [bulkActionError, setBulkActionError] = useState('')
+  const [bulkActionMessage, setBulkActionMessage] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [qrTypeFilter, setQrTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [listRefreshKey, setListRefreshKey] = useState(0)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -107,6 +121,11 @@ function App() {
         const response = await getQrCodes({
           page: currentPage,
           limit: pageSize,
+          search: searchTerm,
+          qrType: qrTypeFilter || undefined,
+          isActive: statusFilter === ''
+            ? undefined
+            : statusFilter,
           sortBy: 'createdAt',
           sortOrder: 'desc',
         })
@@ -155,7 +174,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [user, currentPage, pageSize, listRefreshKey])
+  }, [user, currentPage, pageSize, listRefreshKey,searchTerm,qrTypeFilter,statusFilter,])
 
   // Fetch analytics for the selected QR code
   useEffect(() => {
@@ -198,6 +217,13 @@ function App() {
   const handleLogout = () => {
     logout()
     setUser(null)
+    setSelectedQrIds([])
+  }
+
+  const clearQrSelection = () => {
+    setSelectedQrIds([])
+    setBulkActionError('')
+    setBulkActionMessage('')
   }
 
   
@@ -210,6 +236,9 @@ function App() {
 
     try {
       await deleteQrCode(id)
+      setSelectedQrIds((current) =>
+        current.filter((selectedId) => selectedId !== String(id)),
+      )
 
       if (String(selectedAnalyticsQr) === String(id)) {
         setSelectedAnalyticsQr('')
@@ -224,6 +253,46 @@ function App() {
       setQrListError(
         requestError.message || 'Unable to delete the QR code.',
       )
+    }
+  }
+
+  const handleBulkAction = async (action) => {
+    const ids = selectedQrIds
+
+    if (ids.length === 0 || isBulkManaging) return
+
+    if (action === 'delete') {
+      const confirmed = window.confirm(
+        `Delete ${ids.length} selected QR code${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
+      )
+
+      if (!confirmed) return
+    }
+
+    setBulkActionError('')
+    setBulkActionMessage('')
+    setIsBulkManaging(true)
+
+    try {
+      const response = await bulkManageQrCodes({ ids, action })
+
+      if (
+        action === 'delete' &&
+        ids.includes(String(selectedAnalyticsQr))
+      ) {
+        setSelectedAnalyticsQr('')
+      }
+
+      setSelectedQrIds([])
+      setCurrentPage(1)
+      setListRefreshKey((key) => key + 1)
+      setBulkActionMessage(response.message)
+    } catch (requestError) {
+      setBulkActionError(
+        requestError.message || 'Unable to apply the bulk action.',
+      )
+    } finally {
+      setIsBulkManaging(false)
     }
   }
 
@@ -349,6 +418,7 @@ const handleGenerate = async (event) => {
       // Refresh the first page to display the newly created QR code.
       setCurrentPage(1)
       setListRefreshKey((key) => key + 1)
+      clearQrSelection()
 
       setTitle('')
       setDestination('')
@@ -1081,10 +1151,151 @@ const handleGenerate = async (event) => {
             </button>
           </div>
 
+          <div className="qr-filter-controls">
+            <input
+              type="search"
+              placeholder="Search by QR title or destination..."
+              value={searchTerm}
+              onChange={(event) => {
+                clearQrSelection()
+                setSearchTerm(event.target.value)
+                setCurrentPage(1)
+              }}
+              aria-label="Search QR codes"
+            />
+
+            <select
+              value={qrTypeFilter}
+              onChange={(event) => {
+                clearQrSelection()
+                setQrTypeFilter(event.target.value)
+                setCurrentPage(1)
+              }}
+              aria-label="Filter by QR type"
+            >
+              <option value="">All QR types</option>
+              <option value="static">Static</option>
+              <option value="dynamic">Dynamic</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                clearQrSelection()
+                setStatusFilter(event.target.value)
+                setCurrentPage(1)
+              }}
+              aria-label="Filter by status"
+            >
+              <option value="">All statuses</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                clearQrSelection()
+                setSearchTerm('')
+                setQrTypeFilter('')
+                setStatusFilter('')
+                setCurrentPage(1)
+              }}
+            >
+              Reset filters
+            </button>
+          </div>
+
+          <div className="bulk-action-controls">
+            <span className="bulk-action-count" aria-live="polite">
+              {selectedQrIds.length} selected on this page
+            </span>
+            <div className="bulk-action-buttons" aria-label="Bulk actions">
+              <button
+                type="button"
+                className="edit-button"
+                onClick={() => handleBulkAction('activate')}
+                disabled={
+                  selectedQrIds.length === 0 ||
+                  isBulkManaging ||
+                  isLoadingQrs
+                }
+              >
+                Activate
+              </button>
+              <button
+                type="button"
+                className="edit-button"
+                onClick={() => handleBulkAction('deactivate')}
+                disabled={
+                  selectedQrIds.length === 0 ||
+                  isBulkManaging ||
+                  isLoadingQrs
+                }
+              >
+                Deactivate
+              </button>
+              <button
+                type="button"
+                className="delete-button"
+                onClick={() => handleBulkAction('delete')}
+                disabled={
+                  selectedQrIds.length === 0 ||
+                  isBulkManaging ||
+                  isLoadingQrs
+                }
+              >
+                Delete selected
+              </button>
+            </div>
+            {bulkActionError && (
+              <p className="bulk-action-error" role="alert">
+                {bulkActionError}
+              </p>
+            )}
+            {bulkActionMessage && (
+              <p className="bulk-action-message" role="status">
+                {bulkActionMessage}
+              </p>
+            )}
+          </div>
+
           <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
+                  <th scope="col" className="selection-column">
+                    <input
+                      type="checkbox"
+                      checked={
+                        qrCodes.length > 0 &&
+                        qrCodes.every((item) =>
+                          selectedQrIds.includes(String(item.id)),
+                        )
+                      }
+                      onChange={() => {
+                        const pageIds = qrCodes.map((item) =>
+                          String(item.id),
+                        )
+                        const allSelected = pageIds.every((id) =>
+                          selectedQrIds.includes(id),
+                        )
+
+                        setSelectedQrIds((current) =>
+                          allSelected
+                            ? current.filter((id) => !pageIds.includes(id))
+                            : [...new Set([...current, ...pageIds])],
+                        )
+                      }}
+                      disabled={
+                        qrCodes.length === 0 ||
+                        isLoadingQrs ||
+                        isBulkManaging
+                      }
+                      aria-label="Select all QR codes on this page"
+                    />
+                  </th>
                   <th>QR CODE</th>
                   <th>CONTENT</th>
                   <th>TYPE</th>
@@ -1096,24 +1307,40 @@ const handleGenerate = async (event) => {
               <tbody>
                 {isLoadingQrs && (
                   <tr>
-                    <td colSpan="6">Loading QR codes...</td>
+                    <td colSpan="7">Loading QR codes...</td>
                   </tr>
                 )}
 
                 {!isLoadingQrs && qrListError && (
                   <tr>
-                    <td colSpan="6">{qrListError}</td>
+                    <td colSpan="7">{qrListError}</td>
                   </tr>
                 )}
 
                 {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
                   <tr>
-                    <td colSpan="6">No QR codes found. Create your first QR code!</td>
+                    <td colSpan="7">No QR codes found. Create your first QR code!</td>
                   </tr>
                 )}
 
                 {!isLoadingQrs && !qrListError && qrCodes.map((item) => (
                   <tr key={item.id}>
+                    <td className="selection-column">
+                      <input
+                        type="checkbox"
+                        checked={selectedQrIds.includes(String(item.id))}
+                        onChange={() => {
+                          const id = String(item.id)
+                          setSelectedQrIds((current) =>
+                            current.includes(id)
+                              ? current.filter((selectedId) => selectedId !== id)
+                              : [...current, id],
+                          )
+                        }}
+                        disabled={isBulkManaging || isLoadingQrs}
+                        aria-label={`Select ${item.title}`}
+                      />
+                    </td>
                     <td>
                       <div className="qr-name">
                         <span className="mini-qr">▦</span>
@@ -1202,6 +1429,7 @@ const handleGenerate = async (event) => {
                   id="page-size"
                   value={pageSize}
                   onChange={(event) => {
+                    clearQrSelection()
                     setPageSize(Number(event.target.value))
                     setCurrentPage(1)
                   }}
@@ -1215,7 +1443,10 @@ const handleGenerate = async (event) => {
                   type="button"
                   className="pagination-button"
                   disabled={!pagination.hasPreviousPage || isLoadingQrs}
-                  onClick={() => setCurrentPage((page) => page - 1)}
+                  onClick={() => {
+                    clearQrSelection()
+                    setCurrentPage((page) => page - 1)
+                  }}
                 >
                   Previous
                 </button>
@@ -1224,7 +1455,10 @@ const handleGenerate = async (event) => {
                   type="button"
                   className="pagination-button"
                   disabled={!pagination.hasNextPage || isLoadingQrs}
-                  onClick={() => setCurrentPage((page) => page + 1)}
+                  onClick={() => {
+                    clearQrSelection()
+                    setCurrentPage((page) => page + 1)
+                  }}
                 >
                   Next
                 </button>

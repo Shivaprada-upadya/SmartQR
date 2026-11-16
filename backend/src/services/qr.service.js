@@ -246,6 +246,60 @@ export const deleteQrCode = async (qrId, userId) => {
   return result.rows[0]
 }
 
+export const bulkManageQrCodes = async (userId, ids, action) => {
+  const client = await pool.connect()
+  let transactionStarted = false
+
+  try {
+    await client.query('BEGIN')
+    transactionStarted = true
+
+    const ownedQrCodes = await client.query(
+      `SELECT id
+       FROM qr_codes
+       WHERE user_id = $1 AND id = ANY($2::uuid[])
+      ORDER BY id
+       FOR UPDATE`,
+      [userId, ids],
+    )
+
+    if (ownedQrCodes.rows.length !== ids.length) {
+      const error = new Error('One or more QR codes were not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    const result =
+      action === 'delete'
+        ? await client.query(
+            `DELETE FROM qr_codes
+             WHERE user_id = $1 AND id = ANY($2::uuid[])
+             RETURNING id`,
+            [userId, ids],
+          )
+        : await client.query(
+            `UPDATE qr_codes
+             SET is_active = $2, updated_at = NOW()
+             WHERE user_id = $1 AND id = ANY($3::uuid[])
+             RETURNING id`,
+            [userId, action === 'activate', ids],
+          )
+
+    await client.query('COMMIT')
+    transactionStarted = false
+
+    return { affectedCount: result.rowCount }
+  } catch (error) {
+    if (transactionStarted) {
+      await client.query('ROLLBACK')
+    }
+
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
 export const getDynamicQrByShortCode = async (shortCode) => {
   const result = await pool.query(
     `SELECT id, destination, is_active, expires_at

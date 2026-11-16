@@ -445,6 +445,121 @@ describe('SmartQR QR Management API', () => {
 
     expect(response.status).toBe(400)
   })
+
+  it('should update the active status of selected QR codes', async () => {
+    const response = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'deactivate',
+        ids: [paginationQrIdOne, paginationQrIdTwo],
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual({
+      action: 'deactivate',
+      affectedCount: 2,
+    })
+
+    const qrResponse = await request(app)
+      .get(`/api/qr/${paginationQrIdOne}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(qrResponse.body.data.qrCode.is_active).toBe(false)
+
+    const activateResponse = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'activate',
+        ids: [paginationQrIdOne, paginationQrIdTwo],
+      })
+
+    expect(activateResponse.status).toBe(200)
+
+    const activatedQrResponse = await request(app)
+      .get(`/api/qr/${paginationQrIdOne}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(activatedQrResponse.body.data.qrCode.is_active).toBe(true)
+  })
+
+  it('should not partially update QR codes when one belongs to another user', async () => {
+    const ownQrResponse = await request(app)
+      .patch(`/api/qr/${paginationQrIdOne}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({ isActive: true })
+
+    expect(ownQrResponse.status).toBe(200)
+
+    const otherUserQrResponse = await request(app)
+      .post('/api/qr')
+      .set('Authorization', `Bearer ${tokenTwo}`)
+      .send({
+        title: 'Other User Bulk QR',
+        destination: 'https://example.com/other-user',
+        qrType: 'static',
+      })
+
+    expect(otherUserQrResponse.status).toBe(201)
+
+    const response = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'deactivate',
+        ids: [paginationQrIdOne, otherUserQrResponse.body.data.qrCode.id],
+      })
+
+    expect(response.status).toBe(404)
+
+    const unchangedQrResponse = await request(app)
+      .get(`/api/qr/${paginationQrIdOne}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(unchangedQrResponse.body.data.qrCode.is_active).toBe(true)
+  })
+
+  it('should delete selected QR codes in one bulk action', async () => {
+    const response = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'delete',
+        ids: [paginationQrIdOne, paginationQrIdTwo],
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.affectedCount).toBe(2)
+
+    const deletedQrResponse = await request(app)
+      .get(`/api/qr/${paginationQrIdOne}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(deletedQrResponse.status).toBe(404)
+  })
+
+  it('should reject invalid bulk action requests', async () => {
+    const response = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'archive',
+        ids: ['not-a-uuid'],
+      })
+
+    expect(response.status).toBe(400)
+
+    const duplicateIdsResponse = await request(app)
+      .post('/api/qr/bulk')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        action: 'delete',
+        ids: [paginationQrIdOne, paginationQrIdOne],
+      })
+
+    expect(duplicateIdsResponse.status).toBe(400)
+  })
 })
 
 afterAll(async () => {

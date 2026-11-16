@@ -2,6 +2,7 @@
 import { Router } from 'express'
 
 import {
+  bulkManageQr,
   createQr,
   getQrCodes,
   getQrCode,
@@ -13,12 +14,19 @@ import {
 import authenticate from '../middleware/auth.middleware.js'
 import validate from '../middleware/validate.middleware.js'
 import validateQuery from '../middleware/validate-query.middleware.js'
-import { createQrSchema, updateQrSchema, paginationQuerySchema, analyticsQuerySchema } from '../validators/qr.validator.js'
+import {
+  analyticsQuerySchema,
+  bulkQrSchema,
+  createQrSchema,
+  paginationQuerySchema,
+  updateQrSchema,
+} from '../validators/qr.validator.js'
 
 const router = Router()
 
 router.use(authenticate)
 
+router.post('/bulk', validate(bulkQrSchema), bulkManageQr)
 router.post('/', validate(createQrSchema), createQr)
 router.get('/', validateQuery(paginationQuerySchema), getQrCodes)
 router.get('/:id/analytics', validateQuery(analyticsQuerySchema), getQrAnalyticsController)

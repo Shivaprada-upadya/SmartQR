@@ -47,6 +47,13 @@ export const deleteQrCode = async (id) => {
   })
 }
 
+export const bulkManageQrCodes = async ({ ids, action }) => {
+  return apiRequest('/qr/bulk', {
+    method: 'POST',
+    body: JSON.stringify({ ids, action }),
+  })
+}
+
 export const updateQrCode = async (id, qrData) => {
   return apiRequest(`/qr/${id}`, {
     method: 'PATCH',

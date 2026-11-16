@@ -48,6 +48,17 @@ export const updateQrSchema = z
   )
 
 
+export const bulkQrSchema = z
+  .object({
+    action: z.enum(['activate', 'deactivate', 'delete']),
+    ids: z.array(z.uuid()).min(1).max(100),
+  })
+  .refine((data) => new Set(data.ids).size === data.ids.length, {
+    path: ['ids'],
+    message: 'QR code IDs must be unique',
+  })
+
+
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 
