@@ -11,11 +11,11 @@ import DeleteConfirmationModal from './components/qr/DeleteConfirmationModal'
 import EditQrModal from './components/qr/EditQrModal'
 import QrCodeCreatePanel from './components/qr/QrCodeCreatePanel'
 import QrCodeManagementPanel from './components/qr/QrCodeManagementPanel'
+import useQrCreation from './hooks/useQrCreation'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
 import {
   bulkManageQrCodes,
-  createQrCode,
   deleteQrCode,
   getQrAnalytics,
   getQrCodes,
@@ -70,17 +70,8 @@ function App() {
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
   const [analyticsError, setAnalyticsError] = useState('')
   const [qrListError, setQrListError] = useState('')
-  const [title, setTitle] = useState('')
-  const [destination, setDestination] = useState('')
-  const [qrType, setQrType] = useState('URL')
-  const [qrMode, setQrMode] = useState('static')
-  const [generatedQR, setGeneratedQR] = useState('')
-  const [generatedTitle, setGeneratedTitle] = useState('')
-  const [generatedQRContent, setGeneratedQRContent] = useState('')
   const [qrExportSize, setQrExportSize] = useState('512')
   const [exportError, setExportError] = useState('')
-  const [error, setError] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
 
   const [editingQr, setEditingQr] = useState(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState(null)
@@ -90,6 +81,31 @@ function App() {
   const [editDestination, setEditDestination] = useState('')
   const [editError, setEditError] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
+
+  const {
+    title,
+    setTitle,
+    destination,
+    setDestination,
+    qrType,
+    setQrType,
+    qrMode,
+    handleQrModeChange,
+    generatedQR,
+    generatedTitle,
+    generatedQRContent,
+    error,
+    isGenerating,
+    handleGenerate,
+  } = useQrCreation(() => {
+    setCurrentPage(1)
+    setListRefreshKey((key) => key + 1)
+    setOverviewRefreshKey((key) => key + 1)
+    setSelectedQrIds([])
+    setBulkActionError('')
+    setBulkActionMessage('')
+    setExportError('')
+  })
   
   const userInitials = user?.name
   ?.split(' ')
@@ -509,103 +525,12 @@ const handleUpdateQr = async (event) => {
     setEditError('')
   }
  
-const handleGenerate = async (event) => {
-    event.preventDefault()
-    setError('')
-    setGeneratedQR('')
-
-    const cleanTitle = title.trim()
-    const cleanDestination = destination.trim()
-
-    if (!cleanTitle || !cleanDestination) {
-      setError('Please enter both a QR title and content.')
-      return
-    }
-
-    if (qrType === 'URL' || qrMode === 'dynamic') {
-      try {
-        const parsedUrl = new URL(cleanDestination)
-
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-          throw new Error('Invalid protocol')
-        }
-      } catch {
-        setError('Enter a valid URL, including https://')
-        return
-      }
-    }
-
-    try {
-      setIsGenerating(true)
-
-      // Save the QR code in PostgreSQL through the backend.
-      const response = await createQrCode({
-        title: cleanTitle,
-        destination: cleanDestination,
-        qrType: qrMode,
-      })
-
-      const savedQr = response.data.qrCode
-
-      if (qrMode === 'dynamic' && !savedQr.short_code) {
-        throw new Error('Dynamic QR code was created without a short code.')
-      }
-
-      const apiBaseUrl =
-        import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
-      const qrContent =
-        qrMode === 'dynamic'
-          ? new URL(`/r/${savedQr.short_code}`, apiBaseUrl).toString()
-          : cleanDestination
-
-      // Generate a downloadable QR image in the browser.
-      const image = await QRCode.toDataURL(qrContent, {
-        width: 280,
-        margin: 2,
-        errorCorrectionLevel: 'H',
-        color: {
-          dark: '#111827',
-          light: '#ffffff',
-        },
-      })
-
-      setGeneratedQR(image)
-      setGeneratedTitle(cleanTitle)
-      setGeneratedQRContent(qrContent)
-      setExportError('')
-
-      // Add the database record to the dashboard.
-      // Refresh the first page to display the newly created QR code.
-      setCurrentPage(1)
-      setListRefreshKey((key) => key + 1)
-      setOverviewRefreshKey((key) => key + 1)
-      clearQrSelection()
-
-      setTitle('')
-      setDestination('')
-    } catch (requestError) {
-      setError(requestError.message || 'Unable to create the QR code.')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-
   const scrollToSection = (target, label) => {
     setActiveNav(label)
     document.getElementById(target)?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     })
-  }
-
-  const handleQrModeChange = (mode) => {
-    setQrMode(mode)
-
-    if (mode === 'dynamic') {
-      setQrType('URL')
-    }
   }
 
     const getQrExportContent = (qr) => {
