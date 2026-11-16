@@ -123,7 +123,7 @@ Backend tests load their database configuration from `backend/.env.test`. Config
 | `GET` | `/api/qr/:id/analytics` | Get analytics for one QR code |
 | `GET` | `/r/:shortCode` | Record a scan and redirect a dynamic QR code |
 
-QR management endpoints require authentication. The QR list supports pagination, search, type/status filters, and sorting. The dashboard overview shows account-wide QR totals and all-time scans; its daily average uses the period since the earliest owned QR code was created. Per-QR analytics accepts the `7d`, `30d`, `90d`, and `all` ranges.
+QR management endpoints require authentication. The QR list supports pagination, title/destination search, type/status filters, and sorting. The dashboard overview shows account-wide QR totals and all-time scans; its daily average uses the period since the earliest owned QR code was created. Per-QR analytics accepts the `7d`, `30d`, `90d`, and `all` ranges.
 
 ## Project status
 

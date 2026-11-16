@@ -328,6 +328,17 @@ describe('SmartQR QR Management API', () => {
     expect(response.body.pagination.totalRecords).toBe(1)
   })
 
+  it('should search QR codes by destination', async () => {
+    const response = await request(app)
+      .get('/api/qr?search=page-one')
+      .set('Authorization', `Bearer ${tokenOne}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.qrCodes).toHaveLength(1)
+    expect(response.body.data.qrCodes[0].title).toBe('Pagination QR One')
+    expect(response.body.pagination.totalRecords).toBe(1)
+  })
+
   it('should filter QR codes by type', async () => {
     const response = await request(app)
       .get('/api/qr?qrType=dynamic')

@@ -100,7 +100,11 @@ export const getUserQrCodes = async (
 
   const filterConditions = `
     WHERE user_id = $1
-      AND ($2::text IS NULL OR title ILIKE '%' || $2 || '%')
+      AND (
+        $2::text IS NULL
+        OR title ILIKE '%' || $2 || '%'
+        OR destination ILIKE '%' || $2 || '%'
+      )
       AND ($3::text IS NULL OR qr_type = $3)
       AND ($4::boolean IS NULL OR is_active = $4)
   `
