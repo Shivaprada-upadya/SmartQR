@@ -826,8 +826,18 @@ tbody tr:last-child td {
   }
 
   .workspace-label,
-  .sidebar-bottom {
+  .upgrade-card {
     display: none;
+  }
+
+  .sidebar-bottom {
+    display: block;
+    margin-top: 10px;
+  }
+
+  .profile {
+    margin-top: 0;
+    padding: 8px 0 0;
   }
 
   .navigation {
@@ -1008,11 +1018,13 @@ tbody tr:last-child td {
 .edit-modal {
   width: 100%;
   max-width: 480px;
+  max-height: calc(100vh - 40px);
   padding: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-dialog);
   background: var(--color-surface);
   box-shadow: var(--shadow-dialog);
+  overflow-y: auto;
 }
 
 .edit-modal-header {

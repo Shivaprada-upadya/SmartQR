@@ -100,7 +100,12 @@ function QrCodeManagementPanel({ data, actions }) {
         )}
       </div>
 
-      <div className="table-wrapper">
+      <div
+        className="table-wrapper"
+        role="region"
+        aria-label="QR codes table"
+        tabIndex={0}
+      >
         <QrCodeTable
           qrCodes={qrCodes}
           isLoadingQrs={isLoadingQrs}

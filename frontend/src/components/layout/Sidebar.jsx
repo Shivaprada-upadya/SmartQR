@@ -23,6 +23,7 @@ function Sidebar({ user, userInitials, activeNav, onNavigate, onLogout }) {
             key={item.label}
             type="button"
             className={`nav-item ${activeNav === item.label ? 'active' : ''}`}
+            aria-current={activeNav === item.label ? 'page' : undefined}
             onClick={() => onNavigate(item.target, item.label)}
           >
             <span className="nav-icon">{item.icon}</span>
