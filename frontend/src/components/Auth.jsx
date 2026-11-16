@@ -81,7 +81,7 @@ function Auth({ onAuthenticated }) {
                 maxLength={100}
                 autoComplete="name"
                 required
-                className="h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none transition placeholder:text-text-muted focus:border-brand"
+                className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
               />
             </>
           )}
@@ -98,7 +98,7 @@ function Auth({ onAuthenticated }) {
             maxLength={255}
             autoComplete="email"
             required
-            className="h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none transition placeholder:text-text-muted focus:border-brand"
+            className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
           />
 
           <label htmlFor="auth-password" className="mt-2 text-xs font-semibold text-gray-300">
@@ -114,7 +114,7 @@ function Auth({ onAuthenticated }) {
             maxLength={72}
             autoComplete={isRegistering ? 'new-password' : 'current-password'}
             required
-            className="h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none transition placeholder:text-text-muted focus:border-brand"
+            className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
           />
 
           {error && (
