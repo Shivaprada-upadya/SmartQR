@@ -666,6 +666,14 @@
   overflow-x: auto;
 }
 
+.qr-desktop-view {
+  display: block;
+}
+
+.qr-mobile-view {
+  display: none;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -1270,6 +1278,119 @@ tbody tr:last-child td {
 
 .selection-column input {
   accent-color: var(--purple);
+}
+
+@media (max-width: 700px) {
+  .table-wrapper {
+    overflow: visible;
+  }
+
+  .qr-desktop-view {
+    display: none;
+  }
+
+  .qr-mobile-view {
+    display: block;
+  }
+
+  .qr-mobile-select-all {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 12px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
+
+  .qr-mobile-select-all input,
+  .qr-mobile-card-heading input {
+    accent-color: var(--purple);
+  }
+
+  .qr-mobile-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .qr-mobile-card {
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+  }
+
+  .qr-mobile-card-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+  }
+
+  .qr-mobile-card-title {
+    display: grid;
+    min-width: 0;
+    gap: 9px;
+  }
+
+  .qr-mobile-card .qr-name {
+    min-width: 0;
+  }
+
+  .qr-mobile-card .qr-name strong {
+    overflow-wrap: anywhere;
+    font-size: 13px;
+  }
+
+  .qr-mobile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qr-mobile-card-details {
+    display: grid;
+    gap: 12px;
+    margin: 15px 0;
+  }
+
+  .qr-mobile-card-details > div {
+    display: grid;
+    gap: 4px;
+  }
+
+  .qr-mobile-card-details dt {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .qr-mobile-card-details dd {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .qr-mobile-card .action-buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .qr-mobile-card .action-buttons button {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .qr-mobile-message {
+    margin: 0;
+    padding: 14px 0;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 600px) {

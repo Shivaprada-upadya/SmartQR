@@ -103,7 +103,7 @@ function QrCodeManagementPanel({ data, actions }) {
       <div
         className="table-wrapper"
         role="region"
-        aria-label="QR codes table"
+        aria-label="QR code list"
         tabIndex={0}
       >
         <QrCodeTable
