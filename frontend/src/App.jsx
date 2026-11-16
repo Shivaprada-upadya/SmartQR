@@ -11,13 +11,13 @@ import EditQrModal from './components/qr/EditQrModal'
 import QrCodeCreatePanel from './components/qr/QrCodeCreatePanel'
 import QrCodeManagementPanel from './components/qr/QrCodeManagementPanel'
 import useQrCreation from './hooks/useQrCreation'
+import useQrAnalytics from './hooks/useQrAnalytics'
 import useQrExport from './hooks/useQrExport'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
 import {
   bulkManageQrCodes,
   deleteQrCode,
-  getQrAnalytics,
   getQrCodes,
   getQrOverview,
   updateQrCode,
@@ -54,11 +54,15 @@ function App() {
     hasNextPage: false,
     hasPreviousPage: false,
   })
-  const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState(null)
-  const [analyticsRange, setAnalyticsRange] = useState('7d')
-  const [analytics, setAnalytics] = useState(null)
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
-  const [analyticsError, setAnalyticsError] = useState('')
+  const {
+    selectedQr: selectedAnalyticsQr,
+    setSelectedQr: setSelectedAnalyticsQr,
+    range: analyticsRange,
+    setRange: setAnalyticsRange,
+    analytics,
+    isLoadingAnalytics,
+    analyticsError,
+  } = useQrAnalytics(user)
   const [qrListError, setQrListError] = useState('')
 
   const [editingQr, setEditingQr] = useState(null)
@@ -214,6 +218,7 @@ function App() {
     debouncedSearchTerm,
     qrTypeFilter,
     statusFilter,
+    setSelectedAnalyticsQr,
   ])
 
   useEffect(() => {
@@ -252,44 +257,6 @@ function App() {
     }
   }, [user, overviewRefreshKey])
 
-  // Fetch analytics for the selected QR code
-  useEffect(() => {
-    if (!user || !selectedAnalyticsQr) return
-
-    let isMounted = true
-
-    const fetchAnalytics = async () => {
-      setIsLoadingAnalytics(true)
-      setAnalyticsError('')
-      setAnalytics(null)
-
-      try {
-        const response = await getQrAnalytics(selectedAnalyticsQr, analyticsRange)
-
-        if (!isMounted) return
-
-        setAnalytics(response.data)
-      } catch (requestError) {
-        if (isMounted) {
-          setAnalytics(null)
-          setAnalyticsError(
-            requestError.message || 'Unable to load QR analytics.',
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingAnalytics(false)
-        }
-      }
-    }
-
-    fetchAnalytics()
-
-    return () => {
-      isMounted = false
-    }
-  }, [user, selectedAnalyticsQr, analyticsRange])
-  
   const handleLogout = () => {
     logout()
     setUser(null)
