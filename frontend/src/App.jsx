@@ -32,6 +32,17 @@ function App() {
   const [activeNav, setActiveNav] = useState('Overview')
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
+  const [listRefreshKey, setListRefreshKey] = useState(0)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 5,
+    totalRecords: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
   const [selectedAnalyticsQr, setSelectedAnalyticsQr] = useState(null)
   const [analyticsRange, setAnalyticsRange] = useState('7d')
   const [analytics, setAnalytics] = useState(null)
@@ -94,8 +105,8 @@ function App() {
       
       try {
         const response = await getQrCodes({
-          page: 1,
-          limit: 5,
+          page: currentPage,
+          limit: pageSize,
           sortBy: 'createdAt',
           sortOrder: 'desc',
         })
@@ -117,12 +128,10 @@ function App() {
         }))
         
         setQrCodes(formattedQrCodes)
+        setPagination(response.pagination)
 
         setSelectedAnalyticsQr((current) => {
-          if (
-            current &&
-            formattedQrCodes.some((qr) => String(qr.id) === current)
-          ) {
+          if (current) {
             return current
           }
 
@@ -146,7 +155,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [user])
+  }, [user, currentPage, pageSize, listRefreshKey])
 
   // Fetch analytics for the selected QR code
   useEffect(() => {
@@ -191,25 +200,33 @@ function App() {
     setUser(null)
   }
 
+  
   const handleDeleteQr = async (id) => {
-  const confirmed = window.confirm(
-    'Are you sure you want to delete this QR code?',
-  )
-
-  if (!confirmed) return
-
-  try {
-    await deleteQrCode(id)
-
-    setQrCodes((previous) =>
-      previous.filter((item) => item.id !== id),
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this QR code?',
     )
-  } catch (requestError) {
-    setQrListError(
-      requestError.message || 'Unable to delete the QR code.',
-    )
+
+    if (!confirmed) return
+
+    try {
+      await deleteQrCode(id)
+
+      if (String(selectedAnalyticsQr) === String(id)) {
+        setSelectedAnalyticsQr('')
+      }
+
+      if (currentPage > 1 && qrCodes.length === 1) {
+        setCurrentPage((page) => page - 1)
+      } else {
+        setListRefreshKey((key) => key + 1)
+      }
+    } catch (requestError) {
+      setQrListError(
+        requestError.message || 'Unable to delete the QR code.',
+      )
+    }
   }
-}
+
 
 const handleUpdateQr = async (event) => {
   event.preventDefault()
@@ -329,22 +346,9 @@ const handleGenerate = async (event) => {
       setExportError('')
 
       // Add the database record to the dashboard.
-      setQrCodes((previous) => [
-        {
-          id: savedQr.id,
-          title: savedQr.title,
-          destination: savedQr.destination,
-          short_code: savedQr.short_code,
-          type: savedQr.qr_type.toUpperCase(),
-          status: savedQr.is_active ? 'Active' : 'Inactive',
-          created: new Date(savedQr.created_at).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          }),
-        },
-        ...previous,
-      ])
+      // Refresh the first page to display the newly created QR code.
+      setCurrentPage(1)
+      setListRefreshKey((key) => key + 1)
 
       setTitle('')
       setDestination('')
@@ -1183,6 +1187,50 @@ const handleGenerate = async (event) => {
                 ))}
               </tbody>
             </table>
+            <div className="pagination-controls">
+              <div className="pagination-info">
+                Showing {qrCodes.length} of {pagination.totalRecords} QR codes
+                <span>
+                  Page {pagination.totalPages === 0 ? 0 : currentPage} of{' '}
+                  {pagination.totalPages}
+                </span>
+              </div>
+
+              <div className="pagination-actions">
+                <label htmlFor="page-size">Rows per page:</label>
+                <select
+                  id="page-size"
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value))
+                    setCurrentPage(1)
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+
+                <button
+                  type="button"
+                  className="pagination-button"
+                  disabled={!pagination.hasPreviousPage || isLoadingQrs}
+                  onClick={() => setCurrentPage((page) => page - 1)}
+                >
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  className="pagination-button"
+                  disabled={!pagination.hasNextPage || isLoadingQrs}
+                  onClick={() => setCurrentPage((page) => page + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
           </div>
         </section>
 
