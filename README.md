@@ -18,7 +18,7 @@ Bulk selection applies to the QR codes shown on the current page. Dynamic QR sca
 - **Frontend:** React 19, JavaScript, Vite, Tailwind CSS 4, custom CSS, and `qrcode`.
 - **Backend:** Node.js, Express 5, PostgreSQL, and `pg`.
 - **Security and validation:** JWT, `bcryptjs`, Zod, Helmet, CORS, and rate limiting.
-- **Backend tests:** Vitest and Supertest.
+- **Tests:** Vitest and Supertest for the backend; Vitest and React Testing Library for the frontend.
 
 ## Repository layout
 
@@ -97,6 +97,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 Run frontend checks from `frontend/`:
 
 ```powershell
+npm test
 npm run lint
 npm run build
 ```
