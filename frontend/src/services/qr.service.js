@@ -34,6 +34,12 @@ export const getQrCodes = async ({
   })
 }
 
+export const getQrOverview = async () => {
+  return apiRequest('/qr/overview', {
+    method: 'GET',
+  })
+}
+
 export const createQrCode = async (qrData) => {
   return apiRequest('/qr', {
     method: 'POST',

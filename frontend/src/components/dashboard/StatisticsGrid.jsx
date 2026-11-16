@@ -2,39 +2,46 @@ import PropTypes from 'prop-types'
 import StatCard from './StatCard'
 
 function StatisticsGrid({
-  totalQRCodes,
-  totalScans,
-  todayScans,
-  activeQRCodes,
-  averageScans,
-  selectedRangeLabel,
-  isLoadingAnalytics,
+  overview,
+  isLoadingOverview,
+  overviewError,
+  onRetry,
 }) {
+  if (overviewError) {
+    return (
+      <section className="stats-grid" aria-label="QR code statistics">
+        <div className="overview-error" role="alert">
+          <p>{overviewError}</p>
+          <button type="button" className="text-button" onClick={onRetry}>
+            Retry
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  const isLoading = isLoadingOverview || !overview
+
   return (
     <section className="stats-grid" aria-label="QR code statistics">
       <StatCard
         title="Total QR Codes"
         icon="▦"
         tone="purple"
-        value={totalQRCodes}
-        footer={
-          <>
-            <span className="trend">↑ 12.5%</span>
-            <span>vs last month</span>
-          </>
-        }
+        value={isLoading ? '...' : overview.totalQrCodes}
+        footer={<span className="neutral-trend">All QR codes</span>}
       />
 
       <StatCard
-        title="Selected QR Scans"
+        title="Total Scans"
         icon="⌁"
         tone="blue"
-        value={
-          isLoadingAnalytics ? '...' : totalScans.toLocaleString('en-IN')
-        }
+        value={isLoading ? '...' : overview.totalScans.toLocaleString('en-IN')}
         footer={
           <span className="neutral-trend">
-            {todayScans.toLocaleString('en-IN')} today
+            {isLoading
+              ? "Loading today's scans..."
+              : `${overview.todayScans.toLocaleString('en-IN')} today`}
           </span>
         }
       />
@@ -43,7 +50,7 @@ function StatisticsGrid({
         title="Active QR Codes"
         icon="✓"
         tone="green"
-        value={activeQRCodes}
+        value={isLoading ? '...' : overview.activeQrCodes}
         footer={<span className="neutral-trend">Currently active</span>}
       />
 
@@ -51,9 +58,11 @@ function StatisticsGrid({
         title="Average Daily Scans"
         icon="↗"
         tone="orange"
-        value={isLoadingAnalytics ? '...' : averageScans}
+        value={
+          isLoading ? '...' : overview.averageDailyScans.toFixed(1)
+        }
         footer={
-          <span className="neutral-trend">{selectedRangeLabel}</span>
+          <span className="neutral-trend">Since first QR was created</span>
         }
       />
     </section>
@@ -61,13 +70,16 @@ function StatisticsGrid({
 }
 
 StatisticsGrid.propTypes = {
-  totalQRCodes: PropTypes.number.isRequired,
-  totalScans: PropTypes.number.isRequired,
-  todayScans: PropTypes.number.isRequired,
-  activeQRCodes: PropTypes.number.isRequired,
-  averageScans: PropTypes.string.isRequired,
-  selectedRangeLabel: PropTypes.string.isRequired,
-  isLoadingAnalytics: PropTypes.bool.isRequired,
+  overview: PropTypes.shape({
+    totalQrCodes: PropTypes.number.isRequired,
+    activeQrCodes: PropTypes.number.isRequired,
+    totalScans: PropTypes.number.isRequired,
+    todayScans: PropTypes.number.isRequired,
+    averageDailyScans: PropTypes.number.isRequired,
+  }),
+  isLoadingOverview: PropTypes.bool.isRequired,
+  overviewError: PropTypes.string.isRequired,
+  onRetry: PropTypes.func.isRequired,
 }
 
 export default StatisticsGrid

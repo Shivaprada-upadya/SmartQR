@@ -115,8 +115,26 @@ describe('SmartQR QR Management API', () => {
   it('should reject unauthenticated QR requests', async () => {
     const response = await request(app)
       .get('/api/qr')
+    const overviewResponse = await request(app)
+      .get('/api/qr/overview')
 
     expect(response.status).toBe(401)
+    expect(overviewResponse.status).toBe(401)
+  })
+
+  it('should return zero overview metrics for a user without QR codes', async () => {
+    const response = await request(app)
+      .get('/api/qr/overview')
+      .set('Authorization', `Bearer ${tokenTwo}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual({
+      totalQrCodes: 0,
+      activeQrCodes: 0,
+      totalScans: 0,
+      todayScans: 0,
+      averageDailyScans: 0,
+    })
   })
 
   it('should reject an invalid dynamic QR destination', async () => {
@@ -559,6 +577,74 @@ describe('SmartQR QR Management API', () => {
       })
 
     expect(duplicateIdsResponse.status).toBe(400)
+  })
+
+  it('should return all-time overview metrics scoped to the current user', async () => {
+    const overviewQrResponse = await request(app)
+      .post('/api/qr')
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({
+        title: 'Overview Metrics QR',
+        destination: 'https://example.com/overview',
+        qrType: 'static',
+      })
+
+    expect(overviewQrResponse.status).toBe(201)
+    const overviewQrId = overviewQrResponse.body.data.qrCode.id
+
+    const otherUserQrList = await request(app)
+      .get('/api/qr')
+      .set('Authorization', `Bearer ${tokenTwo}`)
+
+    expect(otherUserQrList.status).toBe(200)
+    const otherUserQrId = otherUserQrList.body.data.qrCodes[0].id
+
+    const deactivateResponse = await request(app)
+      .patch(`/api/qr/${overviewQrId}`)
+      .set('Authorization', `Bearer ${tokenOne}`)
+      .send({ isActive: false })
+
+    expect(deactivateResponse.status).toBe(200)
+
+    await pool.query(
+      `UPDATE qr_codes
+       SET created_at = CURRENT_DATE - INTERVAL '4 days'
+       WHERE id = $1`,
+      [dynamicQrId],
+    )
+    await pool.query(
+      `INSERT INTO qr_scans (qr_code_id, scanned_at)
+       VALUES
+         ($1, NOW()),
+         ($1, NOW() - INTERVAL '2 days'),
+         ($2, NOW()),
+         ($3, NOW())`,
+      [dynamicQrId, overviewQrId, otherUserQrId],
+    )
+
+    const response = await request(app)
+      .get('/api/qr/overview')
+      .set('Authorization', `Bearer ${tokenOne}`)
+    const otherUserResponse = await request(app)
+      .get('/api/qr/overview')
+      .set('Authorization', `Bearer ${tokenTwo}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual({
+      totalQrCodes: 2,
+      activeQrCodes: 1,
+      totalScans: 3,
+      todayScans: 2,
+      averageDailyScans: 0.6,
+    })
+    expect(otherUserResponse.status).toBe(200)
+    expect(otherUserResponse.body.data).toEqual({
+      totalQrCodes: 1,
+      activeQrCodes: 1,
+      totalScans: 1,
+      todayScans: 1,
+      averageDailyScans: 1,
+    })
   })
 })
 

@@ -4,6 +4,7 @@ import {
   deleteQrCode,
   getQrAnalytics,
   getQrCodeById,
+  getUserQrOverview,
   getUserQrCodes,
   updateQrCode,
 } from '../services/qr.service.js'
@@ -54,6 +55,16 @@ export const getQrCodes = async (req, res) => {
       hasNextPage: page < totalPages,
       hasPreviousPage: page > 1,
     },
+  })
+}
+
+export const getQrOverview = async (req, res) => {
+  const overview = await getUserQrOverview(req.user.userId)
+
+  res.status(200).json({
+    success: true,
+    message: 'QR overview retrieved successfully',
+    data: overview,
   })
 }
 

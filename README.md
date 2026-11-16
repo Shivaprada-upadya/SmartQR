@@ -119,10 +119,11 @@ Backend tests load their database configuration from `backend/.env.test`. Config
 | `GET`, `POST` | `/api/qr` | List or create QR codes |
 | `GET`, `PATCH`, `DELETE` | `/api/qr/:id` | Read, update, or delete one QR code |
 | `POST` | `/api/qr/bulk` | Activate, deactivate, or delete selected QR codes |
+| `GET` | `/api/qr/overview` | Get owner-scoped all-time QR and scan totals |
 | `GET` | `/api/qr/:id/analytics` | Get analytics for one QR code |
 | `GET` | `/r/:shortCode` | Record a scan and redirect a dynamic QR code |
 
-QR management endpoints require authentication. The QR list supports pagination, search, type/status filters, and sorting; analytics accepts the `7d`, `30d`, `90d`, and `all` ranges.
+QR management endpoints require authentication. The QR list supports pagination, search, type/status filters, and sorting. The dashboard overview shows account-wide QR totals and all-time scans; its daily average uses the period since the earliest owned QR code was created. Per-QR analytics accepts the `7d`, `30d`, `90d`, and `all` ranges.
 
 ## Project status
 

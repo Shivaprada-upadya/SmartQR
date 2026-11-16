@@ -18,6 +18,7 @@ import {
   deleteQrCode,
   getQrAnalytics,
   getQrCodes,
+  getQrOverview,
   updateQrCode,
 } from './services/qr.service'
 
@@ -37,6 +38,10 @@ function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   
   const [activeNav, setActiveNav] = useState('Overview')
+  const [qrOverview, setQrOverview] = useState(null)
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false)
+  const [overviewError, setOverviewError] = useState('')
+  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0)
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
   const [selectedQrIds, setSelectedQrIds] = useState([])
@@ -176,6 +181,42 @@ function App() {
     }
   }, [user, currentPage, pageSize, listRefreshKey,searchTerm,qrTypeFilter,statusFilter,])
 
+  useEffect(() => {
+    if (!user) return
+
+    let isMounted = true
+
+    const fetchQrOverview = async () => {
+      setIsLoadingOverview(true)
+      setOverviewError('')
+
+      try {
+        const response = await getQrOverview()
+
+        if (!isMounted) return
+
+        setQrOverview(response.data)
+      } catch (requestError) {
+        if (isMounted) {
+          setQrOverview(null)
+          setOverviewError(
+            requestError.message || 'Unable to load QR overview.',
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingOverview(false)
+        }
+      }
+    }
+
+    fetchQrOverview()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user, overviewRefreshKey])
+
   // Fetch analytics for the selected QR code
   useEffect(() => {
     if (!user || !selectedAnalyticsQr) return
@@ -218,6 +259,9 @@ function App() {
     logout()
     setUser(null)
     setSelectedQrIds([])
+    setQrOverview(null)
+    setOverviewError('')
+    setIsLoadingOverview(false)
   }
 
   const clearQrSelection = () => {
@@ -294,6 +338,7 @@ function App() {
 
     try {
       await deleteQrCode(id)
+      setOverviewRefreshKey((key) => key + 1)
       setSelectedQrIds((current) =>
         current.filter((selectedId) => selectedId !== String(id)),
       )
@@ -344,6 +389,7 @@ function App() {
       setSelectedQrIds([])
       setCurrentPage(1)
       setListRefreshKey((key) => key + 1)
+      setOverviewRefreshKey((key) => key + 1)
       setBulkActionMessage(response.message)
     } catch (requestError) {
       setBulkActionError(
@@ -476,6 +522,7 @@ const handleGenerate = async (event) => {
       // Refresh the first page to display the newly created QR code.
       setCurrentPage(1)
       setListRefreshKey((key) => key + 1)
+      setOverviewRefreshKey((key) => key + 1)
       clearQrSelection()
 
       setTitle('')
@@ -574,11 +621,6 @@ const handleGenerate = async (event) => {
     handleDownloadQr(generatedQRContent, generatedTitle, format)
   }
 
-  const totalQRCodes = qrCodes.length
-  const activeQRCodes = qrCodes.filter(
-    (item) => item.status === 'Active',
-  ).length
-
   const analyticsRangeLabels = {
     '7d': 'Last 7 days',
     '30d': 'Last 30 days',
@@ -588,18 +630,8 @@ const handleGenerate = async (event) => {
 
   const selectedRangeLabel = analyticsRangeLabels[analyticsRange]
 
-  const totalScans = Number(analytics?.summary?.total_scans ?? 0)
-  const todayScans = Number(analytics?.summary?.today_scans ?? 0)
-  const dailyScans = analytics?.dailyScans ?? []
-
-  const averageScans = dailyScans.length
-    ? (
-        dailyScans.reduce(
-          (total, item) => total + Number(item.scans),
-          0,
-        ) / dailyScans.length
-      ).toFixed(1)
-    : '0'
+  const selectedQrTotalScans = Number(analytics?.summary?.total_scans ?? 0)
+  const selectedQrTodayScans = Number(analytics?.summary?.today_scans ?? 0)
 
   if (isCheckingSession) {
     return (
@@ -630,13 +662,10 @@ const handleGenerate = async (event) => {
         />
 
         <StatisticsGrid
-          totalQRCodes={totalQRCodes}
-          totalScans={totalScans}
-          todayScans={todayScans}
-          activeQRCodes={activeQRCodes}
-          averageScans={averageScans}
-          selectedRangeLabel={selectedRangeLabel}
-          isLoadingAnalytics={isLoadingAnalytics}
+          overview={qrOverview}
+          isLoadingOverview={isLoadingOverview}
+          overviewError={overviewError}
+          onRetry={() => setOverviewRefreshKey((key) => key + 1)}
         />
 
         <section className="content-grid">
@@ -647,8 +676,8 @@ const handleGenerate = async (event) => {
             analyticsRange={analyticsRange}
             isLoadingAnalytics={isLoadingAnalytics}
             analyticsError={analyticsError}
-            totalScans={totalScans}
-            todayScans={todayScans}
+            totalScans={selectedQrTotalScans}
+            todayScans={selectedQrTodayScans}
             selectedRangeLabel={selectedRangeLabel}
             onAnalyticsQrChange={setSelectedAnalyticsQr}
             onAnalyticsRangeChange={setAnalyticsRange}

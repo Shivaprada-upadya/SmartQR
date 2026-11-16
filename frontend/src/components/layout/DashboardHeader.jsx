@@ -1,6 +1,11 @@
 import PropTypes from 'prop-types'
 
 function DashboardHeader({ activeNav, onCreateQr }) {
+  const currentMonthLabel = new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date()).toUpperCase()
+
   return (
     <>
       <header className="topbar">
@@ -31,7 +36,7 @@ function DashboardHeader({ activeNav, onCreateQr }) {
           <h2>Welcome to SmartQR <span>👋</span></h2>
           <p>Manage your QR codes and track their performance.</p>
         </div>
-        <div className="date-label">NOVEMBER 2026</div>
+        <div className="date-label">{currentMonthLabel}</div>
       </section>
     </>
   )

@@ -131,6 +131,59 @@ export const getUserQrCodes = async (
   }
 }
 
+export const getUserQrOverview = async (userId) => {
+  const result = await pool.query(
+    `WITH owned_qr_codes AS (
+       SELECT id, is_active, created_at
+       FROM qr_codes
+       WHERE user_id = $1
+     ),
+     qr_metrics AS (
+       SELECT
+         COUNT(*)::int AS total_qr_codes,
+         COUNT(*) FILTER (WHERE is_active)::int AS active_qr_codes,
+         MIN(created_at::date) AS first_qr_date
+       FROM owned_qr_codes
+     ),
+     scan_metrics AS (
+       SELECT
+         COUNT(*)::int AS total_scans,
+         COUNT(*) FILTER (
+           WHERE scanned_at >= CURRENT_DATE
+             AND scanned_at < CURRENT_DATE + INTERVAL '1 day'
+         )::int AS today_scans
+       FROM qr_scans
+       WHERE qr_code_id IN (SELECT id FROM owned_qr_codes)
+     )
+     SELECT
+       qr_metrics.total_qr_codes,
+       qr_metrics.active_qr_codes,
+       scan_metrics.total_scans,
+       scan_metrics.today_scans,
+       COALESCE(
+         ROUND(
+           scan_metrics.total_scans::numeric /
+           GREATEST(CURRENT_DATE - qr_metrics.first_qr_date + 1, 1),
+           1
+         ),
+         0
+       )::numeric AS average_daily_scans
+     FROM qr_metrics
+     CROSS JOIN scan_metrics`,
+    [userId],
+  )
+
+  const metrics = result.rows[0]
+
+  return {
+    totalQrCodes: metrics.total_qr_codes,
+    activeQrCodes: metrics.active_qr_codes,
+    totalScans: metrics.total_scans,
+    todayScans: metrics.today_scans,
+    averageDailyScans: Number(metrics.average_daily_scans),
+  }
+}
+
 export const getQrCodeById = async (qrId, userId) => {
   const result = await pool.query(
     `SELECT

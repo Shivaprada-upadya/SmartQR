@@ -5,10 +5,11 @@ import {
   bulkManageQr,
   createQr,
   getQrCodes,
+  getQrOverview,
   getQrCode,
   updateQr,
   deleteQr,
-  getQrAnalyticsController
+  getQrAnalyticsController,
 } from '../controllers/qr.controller.js'
 
 import authenticate from '../middleware/auth.middleware.js'
@@ -29,6 +30,7 @@ router.use(authenticate)
 router.post('/bulk', validate(bulkQrSchema), bulkManageQr)
 router.post('/', validate(createQrSchema), createQr)
 router.get('/', validateQuery(paginationQuerySchema), getQrCodes)
+router.get('/overview', getQrOverview)
 router.get('/:id/analytics', validateQuery(analyticsQuerySchema), getQrAnalyticsController)
 router.get('/:id', getQrCode)
 router.patch('/:id', validate(updateQrSchema), updateQr)
