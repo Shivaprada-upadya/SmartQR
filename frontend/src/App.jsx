@@ -51,6 +51,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [qrTypeFilter, setQrTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [listRefreshKey, setListRefreshKey] = useState(0)
@@ -112,9 +113,17 @@ function App() {
     
     restoreSession()
   }, [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchTerm])
   
   useEffect(() => {
-    if (!user) return
+    if (!user || searchTerm !== debouncedSearchTerm) return
     
     let isMounted = true
     
@@ -126,7 +135,7 @@ function App() {
         const response = await getQrCodes({
           page: currentPage,
           limit: pageSize,
-          search: searchTerm,
+          search: debouncedSearchTerm,
           qrType: qrTypeFilter || undefined,
           isActive: statusFilter === ''
             ? undefined
@@ -179,7 +188,16 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [user, currentPage, pageSize, listRefreshKey,searchTerm,qrTypeFilter,statusFilter,])
+  }, [
+    user,
+    currentPage,
+    pageSize,
+    listRefreshKey,
+    searchTerm,
+    debouncedSearchTerm,
+    qrTypeFilter,
+    statusFilter,
+  ])
 
   useEffect(() => {
     if (!user) return
