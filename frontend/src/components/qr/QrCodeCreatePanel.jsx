@@ -40,7 +40,6 @@ function QrCodeCreatePanel({
           maxLength={60}
         />
 
-        <label htmlFor="qr-type">Content Type</label>
         <label htmlFor="qr-mode">QR Code Mode</label>
         <select
           id="qr-mode"
@@ -51,6 +50,7 @@ function QrCodeCreatePanel({
           <option value="dynamic">Dynamic QR Code</option>
         </select>
 
+        <label htmlFor="qr-type">Content Type</label>
         <select
           id="qr-type"
           value={qrType}

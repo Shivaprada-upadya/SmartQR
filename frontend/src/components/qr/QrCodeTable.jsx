@@ -17,7 +17,7 @@ function QrCodeTable({
     qrCodes.every((item) => selectedQrIds.includes(String(item.id)))
 
   return (
-    <table>
+    <table aria-label="QR codes">
       <thead>
         <tr>
           <th scope="col" className="selection-column">
@@ -33,12 +33,12 @@ function QrCodeTable({
               aria-label="Select all QR codes on this page"
             />
           </th>
-          <th>QR CODE</th>
-          <th>CONTENT</th>
-          <th>TYPE</th>
-          <th>STATUS</th>
-          <th>CREATED</th>
-          <th>ACTIONS</th>
+          <th scope="col">QR CODE</th>
+          <th scope="col">CONTENT</th>
+          <th scope="col">TYPE</th>
+          <th scope="col">STATUS</th>
+          <th scope="col">CREATED</th>
+          <th scope="col">ACTIONS</th>
         </tr>
       </thead>
       <tbody>
