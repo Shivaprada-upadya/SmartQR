@@ -30,9 +30,12 @@ backend/src/services/    PostgreSQL operations and business logic
 backend/src/validators/  Zod request schemas
 backend/src/tests/       Backend integration tests
 database/schema.sql      PostgreSQL schema
-frontend/src/App.jsx     Authenticated dashboard
+frontend/src/App.jsx     Session, API orchestration, and dashboard state
 frontend/src/components/Auth.jsx  Registration and sign-in form
-frontend/src/services/   Frontend API clients
+frontend/src/components/dashboard/  Analytics and statistics presentation
+frontend/src/components/layout/     Dashboard navigation and header
+frontend/src/components/qr/          QR creation, editing, and management UI
+frontend/src/services/               Frontend API clients
 ```
 
 The shared frontend theme and global styles are in `frontend/src/index.css`; dashboard-specific styles are in `frontend/src/App.css`. Prefer the shared design tokens there when adding or updating UI styles.

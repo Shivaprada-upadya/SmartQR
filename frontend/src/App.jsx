@@ -3,6 +3,13 @@ import QRCode from 'qrcode'
 import './App.css'
 
 import Auth from './components/Auth'
+import AnalyticsPanel from './components/dashboard/AnalyticsPanel'
+import StatisticsGrid from './components/dashboard/StatisticsGrid'
+import DashboardHeader from './components/layout/DashboardHeader'
+import Sidebar from './components/layout/Sidebar'
+import EditQrModal from './components/qr/EditQrModal'
+import QrCodeCreatePanel from './components/qr/QrCodeCreatePanel'
+import QrCodeManagementPanel from './components/qr/QrCodeManagementPanel'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
 import {
@@ -13,13 +20,6 @@ import {
   getQrCodes,
   updateQrCode,
 } from './services/qr.service'
-
-const navigation = [
-  { label: 'Overview', icon: '◫', target: 'overview' },
-  { label: 'Create QR', icon: '▦', target: 'create' },
-  { label: 'My QR Codes', icon: '▤', target: 'recent' },
-  { label: 'Analytics', icon: '▥', target: 'analytics' },
-]
 
 const getSafeFilename = (title) => {
   const filename = title
@@ -224,6 +224,64 @@ function App() {
     setSelectedQrIds([])
     setBulkActionError('')
     setBulkActionMessage('')
+  }
+
+  const handleSearchChange = (value) => {
+    clearQrSelection()
+    setSearchTerm(value)
+    setCurrentPage(1)
+  }
+
+  const handleQrTypeFilterChange = (value) => {
+    clearQrSelection()
+    setQrTypeFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handleStatusFilterChange = (value) => {
+    clearQrSelection()
+    setStatusFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handleResetFilters = () => {
+    clearQrSelection()
+    setSearchTerm('')
+    setQrTypeFilter('')
+    setStatusFilter('')
+    setCurrentPage(1)
+  }
+
+  const handleTogglePageSelection = () => {
+    const pageIds = qrCodes.map((item) => String(item.id))
+    const allSelected = pageIds.every((id) => selectedQrIds.includes(id))
+
+    setSelectedQrIds((current) =>
+      allSelected
+        ? current.filter((id) => !pageIds.includes(id))
+        : [...new Set([...current, ...pageIds])],
+    )
+  }
+
+  const handleToggleSelection = (id) => {
+    const selectedId = String(id)
+
+    setSelectedQrIds((current) =>
+      current.includes(selectedId)
+        ? current.filter((id) => id !== selectedId)
+        : [...current, selectedId],
+    )
+  }
+
+  const handlePageSizeChange = (size) => {
+    clearQrSelection()
+    setPageSize(size)
+    setCurrentPage(1)
+  }
+
+  const handlePageChange = (page) => {
+    clearQrSelection()
+    setCurrentPage(page)
   }
 
   
@@ -438,6 +496,14 @@ const handleGenerate = async (event) => {
     })
   }
 
+  const handleQrModeChange = (mode) => {
+    setQrMode(mode)
+
+    if (mode === 'dynamic') {
+      setQrType('URL')
+    }
+  }
+
     const getQrExportContent = (qr) => {
     if (qr.type !== 'DYNAMIC') {
       return qr.destination
@@ -500,39 +566,18 @@ const handleGenerate = async (event) => {
     }
   }
 
+  const handleListQrDownload = (qr, format) => {
+    handleDownloadQr(getQrExportContent(qr), qr.title, format)
+  }
+
+  const handleGeneratedQrDownload = (format) => {
+    handleDownloadQr(generatedQRContent, generatedTitle, format)
+  }
+
   const totalQRCodes = qrCodes.length
   const activeQRCodes = qrCodes.filter(
     (item) => item.status === 'Active',
   ).length
-
-  const deviceBreakdown = analytics?.deviceBreakdown ?? []
-  const browserBreakdown = analytics?.browserBreakdown ?? []
-  const operatingSystemBreakdown =
-    analytics?.operatingSystemBreakdown ?? []
-  const recentScans = analytics?.recentScans ?? []
-
-  const getBreakdownPercentage = (scans) => {
-    const total = Number(analytics?.summary?.total_scans ?? 0)
-
-    return total > 0
-      ? Math.round((Number(scans) / total) * 100)
-      : 0
-  }
-
-  const formatScanDate = (date) => {
-    if (!date) return 'Unknown date'
-
-    return new Date(date).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-    // Analytics values for the selected QR code
-  const dailyScans = analytics?.dailyScans ?? []
 
   const analyticsRangeLabels = {
     '7d': 'Last 7 days',
@@ -545,6 +590,7 @@ const handleGenerate = async (event) => {
 
   const totalScans = Number(analytics?.summary?.total_scans ?? 0)
   const todayScans = Number(analytics?.summary?.today_scans ?? 0)
+  const dailyScans = analytics?.dailyScans ?? []
 
   const averageScans = dailyScans.length
     ? (
@@ -554,41 +600,6 @@ const handleGenerate = async (event) => {
         ) / dailyScans.length
       ).toFixed(1)
     : '0'
-
-  // Scale chart points based on the actual scan counts
-  const maxDailyScans = Math.max(
-    ...dailyScans.map((item) => Number(item.scans)),
-    0,
-  )
-
-  const chartAxisMax = Math.max(
-    4,
-    Math.ceil(maxDailyScans / 4) * 4,
-  )
-
-  const chartYAxisLabels = Array.from(
-    { length: 5 },
-    (_, index) => chartAxisMax - (index * chartAxisMax) / 4,
-  )
-
-  const chartPoints = dailyScans.map((item, index) => {
-    const x =
-      index * (600 / Math.max(dailyScans.length - 1, 1))
-
-    const y =
-      190 - (Number(item.scans) / chartAxisMax) * 160
-
-    return `${x},${y}`
-  })
-
-  const chartPolygonPoints = chartPoints.length
-    ? `0,190 ${chartPoints.join(' ')} 600,190`
-    : ''
-
-  const chartLabelInterval = Math.max(
-    1,
-    Math.ceil(dailyScans.length / 7),
-  )
 
   if (isCheckingSession) {
     return (
@@ -604,957 +615,114 @@ const handleGenerate = async (event) => {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="#overview">
-          <span className="brand-icon">S</span>
-          <span>Smart<span className="brand-accent">QR</span></span>
-        </a>
-
-        <div className="workspace-label">WORKSPACE</div>
-
-        <nav className="navigation" aria-label="Main navigation">
-          {navigation.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className={`nav-item ${activeNav === item.label ? 'active' : ''}`}
-              onClick={() => scrollToSection(item.target, item.label)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="upgrade-card">
-            <div className="upgrade-icon">✦</div>
-            <h3>Unlock more with SmartQR</h3>
-            <p>Advanced analytics and powerful QR management features.</p>
-            <span className="coming-soon">COMING SOON</span>
-          </div>
-
-          <div className="profile">
-            <span className="avatar">{userInitials || 'U'}</span>
-
-            <span className="profile-info">
-              <strong>{user.name}</strong>
-              <small>{user.email}</small>
-            </span>
-
-            <button
-              type="button"
-              className="profile-menu"
-              onClick={handleLogout}
-              title="Sign out"
-              aria-label="Sign out"
-            >
-              ↪
-            </button>
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        user={user}
+        userInitials={userInitials}
+        activeNav={activeNav}
+        onNavigate={scrollToSection}
+        onLogout={handleLogout}
+      />
 
       <main className="main-content" id="overview">
-        <header className="topbar">
-          <div>
-            <div className="breadcrumb">Workspace <span>/</span> {activeNav}</div>
-            <h1>{activeNav === 'Overview' ? 'Dashboard' : activeNav}</h1>
-          </div>
+        <DashboardHeader
+          activeNav={activeNav}
+          onCreateQr={() => scrollToSection('create', 'Create QR')}
+        />
 
-          <div className="topbar-actions">
-            <span className="system-status">
-              <span className="status-dot"></span>
-              All systems operational
-            </span>
-            <button
-              type="button"
-              className="primary-button top-create"
-              onClick={() => scrollToSection('create', 'Create QR')}
-            >
-              <span>＋</span> Create QR
-            </button>
-          </div>
-        </header>
-
-        <section className="welcome-section">
-          <div>
-            <h2>Welcome to SmartQR <span>👋</span></h2>
-            <p>Manage your QR codes and track their performance.</p>
-          </div>
-          <div className="date-label">NOVEMBER 2026</div>
-        </section>
-
-        <section className="stats-grid" aria-label="QR code statistics">
-          <article className="stat-card">
-            <div className="stat-top">
-              <span>Total QR Codes</span>
-              <span className="stat-icon purple">▦</span>
-            </div>
-            <div className="stat-value">{totalQRCodes}</div>
-            <div className="stat-foot">
-              <span className="trend">↑ 12.5%</span>
-              <span>vs last month</span>
-            </div>
-          </article>
-
-          <article className="stat-card">
-            <div className="stat-top">
-              <span>Selected QR Scans</span>
-              <span className="stat-icon blue">⌁</span>
-            </div>
-            <div className="stat-value">
-              {isLoadingAnalytics ? '...' : totalScans.toLocaleString('en-IN')}
-            </div>
-            <div className="stat-foot">
-              <span className="neutral-trend">
-                {todayScans.toLocaleString('en-IN')} today
-              </span>
-            </div>
-          </article>
-
-          <article className="stat-card">
-            <div className="stat-top">
-              <span>Active QR Codes</span>
-              <span className="stat-icon green">✓</span>
-            </div>
-            <div className="stat-value">{activeQRCodes}</div>
-            <div className="stat-foot">
-              <span className="neutral-trend">Currently active</span>
-            </div>
-          </article>
-
-          <article className="stat-card">
-            <div className="stat-top">
-              <span>Average Daily Scans</span>
-              <span className="stat-icon orange">↗</span>
-            </div>
-            <div className="stat-value">
-              {isLoadingAnalytics ? '...' : averageScans}
-            </div>
-            <div className="stat-foot">
-              <span className="neutral-trend">{selectedRangeLabel}</span>
-            </div>
-          </article>
-        </section>
+        <StatisticsGrid
+          totalQRCodes={totalQRCodes}
+          totalScans={totalScans}
+          todayScans={todayScans}
+          activeQRCodes={activeQRCodes}
+          averageScans={averageScans}
+          selectedRangeLabel={selectedRangeLabel}
+          isLoadingAnalytics={isLoadingAnalytics}
+        />
 
         <section className="content-grid">
-          <article className="panel analytics-panel" id="analytics">
-            <div className="panel-heading">
-              <div>
-                <h3>Scan Analytics</h3>
-                <p>Track how your QR codes perform over time.</p>
-              </div>
+          <AnalyticsPanel
+            analytics={analytics}
+            qrCodes={qrCodes}
+            selectedAnalyticsQr={selectedAnalyticsQr}
+            analyticsRange={analyticsRange}
+            isLoadingAnalytics={isLoadingAnalytics}
+            analyticsError={analyticsError}
+            totalScans={totalScans}
+            todayScans={todayScans}
+            selectedRangeLabel={selectedRangeLabel}
+            onAnalyticsQrChange={setSelectedAnalyticsQr}
+            onAnalyticsRangeChange={setAnalyticsRange}
+          />
 
-              <div className="analytics-filters">
-                <select
-                  className="period-select"
-                  value={selectedAnalyticsQr || ''}
-                  onChange={(event) => setSelectedAnalyticsQr(event.target.value)}
-                  disabled={qrCodes.length === 0}
-                  aria-label="Select QR code"
-                >
-                  {qrCodes.length === 0 ? (
-                    <option value="">No QR codes available</option>
-                  ) : (
-                    qrCodes.map((qr) => (
-                      <option key={qr.id} value={String(qr.id)}>
-                        {qr.title}
-                      </option>
-                    ))
-                  )}
-                </select>
-
-                <select
-                  className="period-select"
-                  value={analyticsRange}
-                  onChange={(event) => setAnalyticsRange(event.target.value)}
-                  aria-label="Analytics date range"
-                >
-                  <option value="7d">Last 7 days</option>
-                  <option value="30d">Last 30 days</option>
-                  <option value="90d">Last 90 days</option>
-                  <option value="all">All time</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="chart-summary">
-              <strong>
-                {isLoadingAnalytics
-                  ? '...'
-                  : totalScans.toLocaleString('en-IN')}
-              </strong>
-              <span className="trend">
-                {todayScans.toLocaleString('en-IN')} today
-              </span>
-              <small>scans in {selectedRangeLabel.toLowerCase()}</small>
-            </div>
-
-            <div className="chart">
-              <div className="chart-y-labels">
-                {chartYAxisLabels.map((value, index) => (
-                  <span key={index}>
-                    {Math.round(value).toLocaleString('en-IN')}
-                  </span>
-                ))}
-              </div>
-              <div className="chart-plot">
-                <div className="chart-grid-lines">
-                  <span></span><span></span><span></span><span></span><span></span>
-                </div>
-                <svg
-                  viewBox="0 0 600 190"
-                  preserveAspectRatio="none"
-                  role="img"
-                  aria-label="Daily QR code scan activity for the selected QR code"
-                >
-                  <defs>
-                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity=".30" />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <polygon
-                    points={chartPolygonPoints}
-                    fill="url(#chartFill)"
-                  />
-                  <polyline
-                    points={chartPoints.join(' ')}
-                    fill="none"
-                    stroke="#9b7bff"
-                    strokeWidth="3"
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <div className="chart-x-labels">
-                  {dailyScans.map((item, index) => {
-                    const isLast = index === dailyScans.length - 1
-
-                    if (
-                      index % chartLabelInterval !== 0 &&
-                      !isLast
-                    ) {
-                      return null
-                    }
-
-                    const date = new Date(`${item.date}T00:00:00`)
-
-                    return (
-                      <span key={item.date}>
-                        {analyticsRange === '7d'
-                          ? date.toLocaleDateString('en-IN', {
-                              weekday: 'short',
-                            })
-                          : date.toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                            })}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-            <div className="chart-note">
-              <span className="legend-dot"></span> QR code scans
-              <span className="sample-note">
-                {isLoadingAnalytics
-                  ? 'Loading analytics...'
-                  : analyticsError || 'Live analytics data'}
-              </span>
-            </div>
-          </article>
-                   <section className="analytics-details">
-            <article className="panel breakdown-panel">
-              <div className="panel-heading">
-                <div>
-                  <h3>Device Breakdown</h3>
-                  <p>Devices used to scan this QR code.</p>
-                </div>
-              </div>
-
-              {isLoadingAnalytics ? (
-                <p>Loading device data...</p>
-              ) : deviceBreakdown.length === 0 ? (
-                <p>No device scan data available yet.</p>
-              ) : (
-                deviceBreakdown.map((item) => (
-                  <div className="breakdown-item" key={item.device_type}>
-                    <div className="breakdown-label">
-                      <span>{item.device_type || 'Unknown'}</span>
-                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="breakdown-track">
-                      <div
-                        className="breakdown-fill"
-                        style={{
-                          width: `${getBreakdownPercentage(item.scans)}%`,
-                        }}
-                      />
-                    </div>
-                    <small>{getBreakdownPercentage(item.scans)}%</small>
-                  </div>
-                ))
-              )}
-            </article>
-
-            <article className="panel breakdown-panel">
-              <div className="panel-heading">
-                <div>
-                  <h3>Browser Breakdown</h3>
-                  <p>Browsers used for QR scans.</p>
-                </div>
-              </div>
-
-              {isLoadingAnalytics ? (
-                <p>Loading browser data...</p>
-              ) : browserBreakdown.length === 0 ? (
-                <p>No browser scan data available yet.</p>
-              ) : (
-                browserBreakdown.map((item) => (
-                  <div className="breakdown-item" key={item.browser}>
-                    <div className="breakdown-label">
-                      <span>{item.browser || 'Unknown'}</span>
-                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="breakdown-track">
-                      <div
-                        className="breakdown-fill"
-                        style={{
-                          width: `${getBreakdownPercentage(item.scans)}%`,
-                        }}
-                      />
-                    </div>
-                    <small>{getBreakdownPercentage(item.scans)}%</small>
-                  </div>
-                ))
-              )}
-            </article>
-
-            <article className="panel breakdown-panel">
-              <div className="panel-heading">
-                <div>
-                  <h3>Operating Systems</h3>
-                  <p>Operating systems used for QR scans.</p>
-                </div>
-              </div>
-
-              {isLoadingAnalytics ? (
-                <p>Loading operating system data...</p>
-              ) : operatingSystemBreakdown.length === 0 ? (
-                <p>No operating system data available yet.</p>
-              ) : (
-                operatingSystemBreakdown.map((item) => (
-                  <div
-                    className="breakdown-item"
-                    key={item.operating_system}
-                  >
-                    <div className="breakdown-label">
-                      <span>{item.operating_system || 'Unknown'}</span>
-                      <strong>{Number(item.scans).toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="breakdown-track">
-                      <div
-                        className="breakdown-fill"
-                        style={{
-                          width: `${getBreakdownPercentage(item.scans)}%`,
-                        }}
-                      />
-                    </div>
-                    <small>{getBreakdownPercentage(item.scans)}%</small>
-                  </div>
-                ))
-              )}
-            </article>
-
-            <article className="panel recent-scans-panel">
-              <div className="panel-heading">
-                <div>
-                  <h3>Recent Scan Activity</h3>
-                  <p>Latest 10 scans for the selected QR code.</p>
-                </div>
-              </div>
-
-              {isLoadingAnalytics ? (
-                <p>Loading recent scans...</p>
-              ) : recentScans.length === 0 ? (
-                <p>No scans recorded yet.</p>
-              ) : (
-                <div className="recent-scans-list">
-                  {recentScans.map((scan) => (
-                    <div className="recent-scan-item" key={scan.id}>
-                      <div>
-                        <strong>
-                          {scan.device_type || 'Unknown device'}
-                        </strong>
-                        <span>
-                          {scan.browser || 'Unknown browser'} ·{' '}
-                          {scan.operating_system || 'Unknown OS'}
-                        </span>
-                        <small>
-                          Referrer: {scan.referrer || 'Direct / Unknown'}
-                        </small>
-                      </div>
-                      <time dateTime={scan.scanned_at}>
-                        {formatScanDate(scan.scanned_at)}
-                      </time>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </article>
-          </section>
-
-          <article className="panel create-panel" id="create">
-            <div className="panel-heading">
-              <div>
-                <h3>Create a QR Code</h3>
-                <p>Generate a QR code in seconds.</p>
-              </div>
-              <span className="create-icon">▦</span>
-            </div>
-
-            <form onSubmit={handleGenerate}>
-              <label htmlFor="qr-title">QR Code Name</label>
-              <input
-                id="qr-title"
-                type="text"
-                placeholder="e.g. My Website"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                maxLength={60}
-              />
-
-              <label htmlFor="qr-type">Content Type</label>
-              <label htmlFor="qr-mode">QR Code Mode</label>
-                <select
-                  id="qr-mode"
-                  value={qrMode}
-                  onChange={(event) => {
-                    const mode = event.target.value
-                    setQrMode(mode)
-
-                    if (mode === 'dynamic') {
-                      setQrType('URL')
-                    }
-                  }}
-                >
-                  <option value="static">Static QR Code</option>
-                  <option value="dynamic">Dynamic QR Code</option>
-                </select>
-              <select
-                id="qr-type"
-                value={qrType}
-                onChange={(event) => setQrType(event.target.value)}
-              >
-                <option value="URL">Website URL</option>
-                <option value="Text" disabled={qrMode === 'dynamic'}>
-                  Plain Text
-                </option>
-              </select>
-
-              <label htmlFor="qr-content">
-                {qrType === 'URL' ? 'Website URL' : 'Text Content'}
-              </label>
-              <textarea
-                id="qr-content"
-                placeholder={
-                  qrType === 'URL'
-                    ? 'https://example.com'
-                    : 'Enter the text for your QR code'
-                }
-                value={destination}
-                onChange={(event) => setDestination(event.target.value)}
-                rows={3}
-                maxLength={2000}
-              />
-
-              {error && <p className="form-error" role="alert">{error}</p>}
-
-              <button
-                className="primary-button generate-button"
-                type="submit"
-                disabled={isGenerating}
-              >
-                {isGenerating ? 'Generating...' : '✦  Generate QR Code'}
-              </button>
-            </form>
-
-            {generatedQR && (
-              <div className="qr-result">
-                <div className="qr-preview">
-                  <img src={generatedQR} alt={`QR code for ${generatedTitle}`} />
-                </div>
-
-                <div className="qr-result-info">
-                  <strong>{generatedTitle}</strong>
-                  <span>QR code generated successfully</span>
-
-                  <label htmlFor="qr-export-size">Export dimensions</label>
-                  <select
-                    id="qr-export-size"
-                    className="period-select"
-                    value={qrExportSize}
-                    onChange={(event) => setQrExportSize(event.target.value)}
-                  >
-                    <option value="280">280 × 280</option>
-                    <option value="512">512 × 512</option>
-                    <option value="1024">1024 × 1024</option>
-                  </select>
-
-                  <div className="action-buttons">
-                    <button
-                      type="button"
-                      className="edit-button"
-                      onClick={() =>
-                        handleDownloadQr(generatedQRContent, generatedTitle, 'png')
-                      }
-                    >
-                      ↓ PNG
-                    </button>
-
-                    <button
-                      type="button"
-                      className="edit-button"
-                      onClick={() =>
-                        handleDownloadQr(generatedQRContent, generatedTitle, 'svg')
-                      }
-                    >
-                      ↓ SVG
-                    </button>
-                  </div>
-
-                  {exportError && (
-                    <span className="export-error">{exportError}</span>
-                  )}
-                </div>
-              </div>
-            )}
-          </article>
+          <QrCodeCreatePanel
+            title={title}
+            destination={destination}
+            qrType={qrType}
+            qrMode={qrMode}
+            isGenerating={isGenerating}
+            error={error}
+            generatedQR={generatedQR}
+            generatedTitle={generatedTitle}
+            qrExportSize={qrExportSize}
+            exportError={exportError}
+            onTitleChange={setTitle}
+            onDestinationChange={setDestination}
+            onQrModeChange={handleQrModeChange}
+            onQrTypeChange={setQrType}
+            onQrExportSizeChange={setQrExportSize}
+            onSubmit={handleGenerate}
+            onDownload={handleGeneratedQrDownload}
+          />
         </section>
 
-        <section className="panel recent-panel" id="recent">
-          <div className="panel-heading recent-heading">
-            <div>
-              <h3>Recent QR Codes</h3>
-              <p>View and manage your recently created QR codes.</p>
-            </div>
-            <button
-              className="text-button"
-              type="button"
-              onClick={() => setActiveNav('My QR Codes')}
-            >
-              View all <span>→</span>
-            </button>
-          </div>
+        <QrCodeManagementPanel
+          data={{
+            qrCodes,
+            isLoadingQrs,
+            qrListError,
+            selectedQrIds,
+            isBulkManaging,
+            bulkActionError,
+            bulkActionMessage,
+            searchTerm,
+            qrTypeFilter,
+            statusFilter,
+            pagination,
+            currentPage,
+            pageSize,
+          }}
+          actions={{
+            onViewAll: () => setActiveNav('My QR Codes'),
+            onSearchChange: handleSearchChange,
+            onQrTypeFilterChange: handleQrTypeFilterChange,
+            onStatusFilterChange: handleStatusFilterChange,
+            onResetFilters: handleResetFilters,
+            onBulkAction: handleBulkAction,
+            onTogglePageSelection: handleTogglePageSelection,
+            onToggleSelection: handleToggleSelection,
+            onEdit: handleEditClick,
+            onDownload: handleListQrDownload,
+            onDelete: handleDeleteQr,
+            onPageSizeChange: handlePageSizeChange,
+            onPageChange: handlePageChange,
+          }}
+        />
 
-          <div className="qr-filter-controls">
-            <input
-              type="search"
-              placeholder="Search by QR title or destination..."
-              value={searchTerm}
-              onChange={(event) => {
-                clearQrSelection()
-                setSearchTerm(event.target.value)
-                setCurrentPage(1)
-              }}
-              aria-label="Search QR codes"
-            />
-
-            <select
-              value={qrTypeFilter}
-              onChange={(event) => {
-                clearQrSelection()
-                setQrTypeFilter(event.target.value)
-                setCurrentPage(1)
-              }}
-              aria-label="Filter by QR type"
-            >
-              <option value="">All QR types</option>
-              <option value="static">Static</option>
-              <option value="dynamic">Dynamic</option>
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(event) => {
-                clearQrSelection()
-                setStatusFilter(event.target.value)
-                setCurrentPage(1)
-              }}
-              aria-label="Filter by status"
-            >
-              <option value="">All statuses</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                clearQrSelection()
-                setSearchTerm('')
-                setQrTypeFilter('')
-                setStatusFilter('')
-                setCurrentPage(1)
-              }}
-            >
-              Reset filters
-            </button>
-          </div>
-
-          <div className="bulk-action-controls">
-            <span className="bulk-action-count" aria-live="polite">
-              {selectedQrIds.length} selected on this page
-            </span>
-            <div className="bulk-action-buttons" aria-label="Bulk actions">
-              <button
-                type="button"
-                className="edit-button"
-                onClick={() => handleBulkAction('activate')}
-                disabled={
-                  selectedQrIds.length === 0 ||
-                  isBulkManaging ||
-                  isLoadingQrs
-                }
-              >
-                Activate
-              </button>
-              <button
-                type="button"
-                className="edit-button"
-                onClick={() => handleBulkAction('deactivate')}
-                disabled={
-                  selectedQrIds.length === 0 ||
-                  isBulkManaging ||
-                  isLoadingQrs
-                }
-              >
-                Deactivate
-              </button>
-              <button
-                type="button"
-                className="delete-button"
-                onClick={() => handleBulkAction('delete')}
-                disabled={
-                  selectedQrIds.length === 0 ||
-                  isBulkManaging ||
-                  isLoadingQrs
-                }
-              >
-                Delete selected
-              </button>
-            </div>
-            {bulkActionError && (
-              <p className="bulk-action-error" role="alert">
-                {bulkActionError}
-              </p>
-            )}
-            {bulkActionMessage && (
-              <p className="bulk-action-message" role="status">
-                {bulkActionMessage}
-              </p>
-            )}
-          </div>
-
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col" className="selection-column">
-                    <input
-                      type="checkbox"
-                      checked={
-                        qrCodes.length > 0 &&
-                        qrCodes.every((item) =>
-                          selectedQrIds.includes(String(item.id)),
-                        )
-                      }
-                      onChange={() => {
-                        const pageIds = qrCodes.map((item) =>
-                          String(item.id),
-                        )
-                        const allSelected = pageIds.every((id) =>
-                          selectedQrIds.includes(id),
-                        )
-
-                        setSelectedQrIds((current) =>
-                          allSelected
-                            ? current.filter((id) => !pageIds.includes(id))
-                            : [...new Set([...current, ...pageIds])],
-                        )
-                      }}
-                      disabled={
-                        qrCodes.length === 0 ||
-                        isLoadingQrs ||
-                        isBulkManaging
-                      }
-                      aria-label="Select all QR codes on this page"
-                    />
-                  </th>
-                  <th>QR CODE</th>
-                  <th>CONTENT</th>
-                  <th>TYPE</th>
-                  <th>STATUS</th>
-                  <th>CREATED</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoadingQrs && (
-                  <tr>
-                    <td colSpan="7">Loading QR codes...</td>
-                  </tr>
-                )}
-
-                {!isLoadingQrs && qrListError && (
-                  <tr>
-                    <td colSpan="7">{qrListError}</td>
-                  </tr>
-                )}
-
-                {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
-                  <tr>
-                    <td colSpan="7">No QR codes found. Create your first QR code!</td>
-                  </tr>
-                )}
-
-                {!isLoadingQrs && !qrListError && qrCodes.map((item) => (
-                  <tr key={item.id}>
-                    <td className="selection-column">
-                      <input
-                        type="checkbox"
-                        checked={selectedQrIds.includes(String(item.id))}
-                        onChange={() => {
-                          const id = String(item.id)
-                          setSelectedQrIds((current) =>
-                            current.includes(id)
-                              ? current.filter((selectedId) => selectedId !== id)
-                              : [...current, id],
-                          )
-                        }}
-                        disabled={isBulkManaging || isLoadingQrs}
-                        aria-label={`Select ${item.title}`}
-                      />
-                    </td>
-                    <td>
-                      <div className="qr-name">
-                        <span className="mini-qr">▦</span>
-                        <strong>{item.title}</strong>
-                      </div>
-                    </td>
-
-                    <td className="destination-cell" title={item.destination}>
-                      {item.destination}
-                    </td>
-
-                    <td>
-                      <span className="type-badge">{item.type}</span>
-                    </td>
-
-                    <td>
-                      <span className={`status-badge ${item.status.toLowerCase()}`}>
-                        <span></span>{item.status}
-                      </span>
-                    </td>
-
-                    <td className="date-cell">{item.created}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          type="button"
-                          className="edit-button"
-                          onClick={() => handleEditClick(item)}
-                          aria-label={`Edit ${item.title}`}
-                          title="Edit QR code"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          className="edit-button"
-                          onClick={() =>
-                            handleDownloadQr(getQrExportContent(item), item.title, 'png')
-                          }
-                          aria-label={`Download PNG for ${item.title}`}
-                          title="Download PNG"
-                        >
-                          PNG
-                        </button>
-
-                        <button
-                          type="button"
-                          className="edit-button"
-                          onClick={() =>
-                            handleDownloadQr(getQrExportContent(item), item.title, 'svg')
-                          }
-                          aria-label={`Download SVG for ${item.title}`}
-                          title="Download SVG"
-                        >
-                          SVG
-                        </button>
-
-                        <button
-                          type="button"
-                          className="delete-button"
-                          onClick={() => handleDeleteQr(item.id)}
-                          aria-label={`Delete ${item.title}`}
-                          title="Delete QR code"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="pagination-controls">
-              <div className="pagination-info">
-                Showing {qrCodes.length} of {pagination.totalRecords} QR codes
-                <span>
-                  Page {pagination.totalPages === 0 ? 0 : currentPage} of{' '}
-                  {pagination.totalPages}
-                </span>
-              </div>
-
-              <div className="pagination-actions">
-                <label htmlFor="page-size">Rows per page:</label>
-                <select
-                  id="page-size"
-                  value={pageSize}
-                  onChange={(event) => {
-                    clearQrSelection()
-                    setPageSize(Number(event.target.value))
-                    setCurrentPage(1)
-                  }}
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                </select>
-
-                <button
-                  type="button"
-                  className="pagination-button"
-                  disabled={!pagination.hasPreviousPage || isLoadingQrs}
-                  onClick={() => {
-                    clearQrSelection()
-                    setCurrentPage((page) => page - 1)
-                  }}
-                >
-                  Previous
-                </button>
-
-                <button
-                  type="button"
-                  className="pagination-button"
-                  disabled={!pagination.hasNextPage || isLoadingQrs}
-                  onClick={() => {
-                    clearQrSelection()
-                    setCurrentPage((page) => page + 1)
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        {editingQr && (
-          <div className="edit-modal-overlay">
-            <div
-              className="edit-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="edit-modal-title"
-            >
-              <div className="edit-modal-header">
-                <div>
-                  <h3 id="edit-modal-title">Edit QR Code</h3>
-                  <p>Update your QR code information.</p>
-                </div>
-
-                <button
-                  type="button"
-                  className="modal-close-button"
-                  onClick={() => setEditingQr(null)}
-                  aria-label="Close edit form"
-                >
-                  ×
-                </button>
-              </div>
-
-              <form onSubmit={handleUpdateQr}>
-                <div className="edit-form-group">
-                  <label htmlFor="edit-title">QR Code Title</label>
-                  <input
-                    id="edit-title"
-                    type="text"
-                    value={editTitle}
-                    onChange={(event) =>
-                      setEditTitle(event.target.value)
-                    }
-                    maxLength={150}
-                    required
-                  />
-                </div>
-
-                <div className="edit-form-group">
-                  <label htmlFor="edit-destination">
-                    Destination / Content
-                  </label>
-                  <textarea
-                    id="edit-destination"
-                    value={editDestination}
-                    onChange={(event) =>
-                      setEditDestination(event.target.value)
-                    }
-                    rows={4}
-                    maxLength={2048}
-                    required
-                  />
-                </div>
-
-                {editError && (
-                  <p className="form-error" role="alert">
-                    {editError}
-                  </p>
-                )}
-
-                <div className="edit-modal-actions">
-                  <button
-                    type="button"
-                    className="cancel-edit-button"
-                    onClick={() => setEditingQr(null)}
-                    disabled={isUpdating}
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <EditQrModal
+          editingQr={editingQr}
+          editTitle={editTitle}
+          editDestination={editDestination}
+          editError={editError}
+          isUpdating={isUpdating}
+          onEditTitleChange={setEditTitle}
+          onEditDestinationChange={setEditDestination}
+          onSubmit={handleUpdateQr}
+          onClose={() => setEditingQr(null)}
+        />
 
         <footer className="footer">
-          <span>© 2026 SmartQR. Built with care.</span>
-          <span>SmartQR <span className="footer-dot">•</span> Development Preview</span>
+          <span>&copy; 2026 SmartQR. Built with care.</span>
+          <span>SmartQR <span className="footer-dot">&bull;</span> Development Preview</span>
         </footer>
       </main>
     </div>
