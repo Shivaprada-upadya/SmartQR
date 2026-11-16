@@ -13,13 +13,13 @@ import QrCodeManagementPanel from './components/qr/QrCodeManagementPanel'
 import useQrCreation from './hooks/useQrCreation'
 import useQrAnalytics from './hooks/useQrAnalytics'
 import useQrExport from './hooks/useQrExport'
+import useQrOverview from './hooks/useQrOverview'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
 import {
   bulkManageQrCodes,
   deleteQrCode,
   getQrCodes,
-  getQrOverview,
   updateQrCode,
 } from './services/qr.service'
 
@@ -29,10 +29,6 @@ function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   
   const [activeNav, setActiveNav] = useState('Overview')
-  const [qrOverview, setQrOverview] = useState(null)
-  const [isLoadingOverview, setIsLoadingOverview] = useState(false)
-  const [overviewError, setOverviewError] = useState('')
-  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0)
   const [qrCodes, setQrCodes] = useState([])
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
   const [selectedQrIds, setSelectedQrIds] = useState([])
@@ -63,6 +59,13 @@ function App() {
     isLoadingAnalytics,
     analyticsError,
   } = useQrAnalytics(user)
+  const {
+    overview: qrOverview,
+    isLoadingOverview,
+    overviewError,
+    refreshOverview,
+    resetOverview,
+  } = useQrOverview(user)
   const [qrListError, setQrListError] = useState('')
 
   const [editingQr, setEditingQr] = useState(null)
@@ -101,7 +104,7 @@ function App() {
   } = useQrCreation(() => {
     setCurrentPage(1)
     setListRefreshKey((key) => key + 1)
-    setOverviewRefreshKey((key) => key + 1)
+    refreshOverview()
     setSelectedQrIds([])
     setBulkActionError('')
     setBulkActionMessage('')
@@ -221,49 +224,11 @@ function App() {
     setSelectedAnalyticsQr,
   ])
 
-  useEffect(() => {
-    if (!user) return
-
-    let isMounted = true
-
-    const fetchQrOverview = async () => {
-      setIsLoadingOverview(true)
-      setOverviewError('')
-
-      try {
-        const response = await getQrOverview()
-
-        if (!isMounted) return
-
-        setQrOverview(response.data)
-      } catch (requestError) {
-        if (isMounted) {
-          setQrOverview(null)
-          setOverviewError(
-            requestError.message || 'Unable to load QR overview.',
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingOverview(false)
-        }
-      }
-    }
-
-    fetchQrOverview()
-
-    return () => {
-      isMounted = false
-    }
-  }, [user, overviewRefreshKey])
-
   const handleLogout = () => {
     logout()
     setUser(null)
     setSelectedQrIds([])
-    setQrOverview(null)
-    setOverviewError('')
-    setIsLoadingOverview(false)
+    resetOverview()
   }
 
   const clearQrSelection = () => {
@@ -349,7 +314,7 @@ function App() {
 
       try {
         await deleteQrCode(id)
-        setOverviewRefreshKey((key) => key + 1)
+        refreshOverview()
         setSelectedQrIds((current) =>
           current.filter((selectedId) => selectedId !== String(id)),
         )
@@ -391,7 +356,7 @@ function App() {
       setSelectedQrIds([])
       setCurrentPage(1)
       setListRefreshKey((key) => key + 1)
-      setOverviewRefreshKey((key) => key + 1)
+      refreshOverview()
       setBulkActionMessage(response.message)
       setDeleteConfirmation(null)
     } catch (requestError) {
@@ -426,7 +391,7 @@ function App() {
       setSelectedQrIds([])
       setCurrentPage(1)
       setListRefreshKey((key) => key + 1)
-      setOverviewRefreshKey((key) => key + 1)
+      refreshOverview()
       setBulkActionMessage(response.message)
     } catch (requestError) {
       setBulkActionError(
@@ -541,7 +506,7 @@ const handleUpdateQr = async (event) => {
           overview={qrOverview}
           isLoadingOverview={isLoadingOverview}
           overviewError={overviewError}
-          onRetry={() => setOverviewRefreshKey((key) => key + 1)}
+          onRetry={refreshOverview}
         />
 
         <section className="content-grid">
