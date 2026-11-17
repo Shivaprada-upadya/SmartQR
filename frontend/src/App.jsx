@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import './App.css'
 
 import Auth from './components/Auth'
@@ -20,11 +19,12 @@ import useSession from './hooks/useSession'
 import useQrSelection from './hooks/useQrSelection'
 import useQrManagement from './hooks/useQrManagement'
 import useQrListControls from './hooks/useQrListControls'
+import useDashboardNavigation from './hooks/useDashboardNavigation'
 
 function App() {
   const { user, setUser, isCheckingSession, clearSession } = useSession()
-  
-  const [activeNav, setActiveNav] = useState('Overview')
+  const { activeNav, setActiveNav, userInitials, scrollToSection } =
+    useDashboardNavigation(user)
   const {
     selectedQr: selectedAnalyticsQr,
     setSelectedQr: setSelectedAnalyticsQr,
@@ -152,26 +152,10 @@ function App() {
     clearBulkActionFeedback()
     setExportError('')
   })
-  
-  const userInitials = user?.name
-  ?.split(' ')
-  .map((part) => part[0])
-  .join('')
-  .slice(0, 2)
-  .toUpperCase()
-
   const handleLogout = () => {
     clearSession()
     clearSelection()
     resetOverview()
-  }
-
-  const scrollToSection = (target, label) => {
-    setActiveNav(label)
-    document.getElementById(target)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
   }
 
   const analyticsRangeLabels = {
