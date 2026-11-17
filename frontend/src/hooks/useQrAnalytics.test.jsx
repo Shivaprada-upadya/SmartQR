@@ -69,4 +69,34 @@ describe('useQrAnalytics', () => {
     expect(result.current.analyticsError).toBe('')
     expect(result.current.isLoadingAnalytics).toBe(false)
   })
+
+  it('ignores a stale response after selecting a different QR', async () => {
+    const resolveRequest = {}
+    mocks.getQrAnalytics.mockImplementation(
+      (qrId) =>
+        new Promise((resolve) => {
+          resolveRequest[qrId] = resolve
+        }),
+    )
+    const user = { id: 'user-1' }
+    const { result } = renderHook(() => useQrAnalytics(user))
+
+    act(() => result.current.setSelectedQr('qr-1'))
+    await waitFor(() => expect(resolveRequest['qr-1']).toBeDefined())
+
+    act(() => result.current.setSelectedQr('qr-2'))
+    await waitFor(() => expect(resolveRequest['qr-2']).toBeDefined())
+
+    await act(async () => {
+      resolveRequest['qr-1']({ data: { summary: { total_scans: 1 } } })
+    })
+    expect(result.current.analytics).toBeNull()
+
+    await act(async () => {
+      resolveRequest['qr-2']({ data: { summary: { total_scans: 2 } } })
+    })
+    await waitFor(() =>
+      expect(result.current.analytics?.summary?.total_scans).toBe(2),
+    )
+  })
 })
