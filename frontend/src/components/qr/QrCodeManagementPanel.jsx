@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { Button, Card, SectionHeading } from '../ui'
 import QrCodeFilters from './QrCodeFilters'
 import QrCodePagination from './QrCodePagination'
 import QrCodeTable from './QrCodeTable'
@@ -21,20 +22,28 @@ function QrCodeManagementPanel({ data, actions }) {
   } = data
 
   return (
-    <section className="panel recent-panel" id="recent">
-      <div className="panel-heading recent-heading">
-        <div>
-          <h3>Recent QR Codes</h3>
-          <p>View and manage your recently created QR codes.</p>
-        </div>
-        <button
-          className="text-button"
-          type="button"
-          onClick={actions.onViewAll}
-        >
-          View all <span>→</span>
-        </button>
-      </div>
+    <Card
+      as="section"
+      className="panel recent-panel"
+      padding="none"
+      id="recent"
+    >
+      <SectionHeading
+        className="panel-heading recent-heading"
+        title="Recent QR Codes"
+        description="View and manage your recently created QR codes."
+        level={3}
+        actions={(
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-button"
+            onClick={actions.onViewAll}
+          >
+            View all <span>→</span>
+          </Button>
+        )}
+      />
 
       <QrCodeFilters
         searchTerm={searchTerm}
@@ -51,9 +60,10 @@ function QrCodeManagementPanel({ data, actions }) {
           {selectedQrIds.length} selected on this page
         </span>
         <div className="bulk-action-buttons" aria-label="Bulk actions">
-          <button
+          <Button
             type="button"
-            className="edit-button"
+            variant="secondary"
+            size="sm"
             onClick={() => actions.onBulkAction('activate')}
             disabled={
               selectedQrIds.length === 0 ||
@@ -62,10 +72,11 @@ function QrCodeManagementPanel({ data, actions }) {
             }
           >
             Activate
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="edit-button"
+            variant="secondary"
+            size="sm"
             onClick={() => actions.onBulkAction('deactivate')}
             disabled={
               selectedQrIds.length === 0 ||
@@ -74,10 +85,11 @@ function QrCodeManagementPanel({ data, actions }) {
             }
           >
             Deactivate
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="delete-button"
+            variant="danger"
+            size="sm"
             onClick={() => actions.onBulkAction('delete')}
             disabled={
               selectedQrIds.length === 0 ||
@@ -86,7 +98,7 @@ function QrCodeManagementPanel({ data, actions }) {
             }
           >
             Delete selected
-          </button>
+          </Button>
         </div>
         {bulkActionError && (
           <p className="bulk-action-error" role="alert">
@@ -128,7 +140,7 @@ function QrCodeManagementPanel({ data, actions }) {
           onPageChange={actions.onPageChange}
         />
       </div>
-    </section>
+    </Card>
   )
 }
 

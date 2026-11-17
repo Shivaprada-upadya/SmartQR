@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { Button, Card, Input, SectionHeading, Select } from '../ui'
 
 function QrCodeCreatePanel({
   title,
@@ -20,18 +21,18 @@ function QrCodeCreatePanel({
   onDownload,
 }) {
   return (
-    <article className="panel create-panel" id="create">
-      <div className="panel-heading">
-        <div>
-          <h3>Create a QR Code</h3>
-          <p>Generate a QR code in seconds.</p>
-        </div>
-        <span className="create-icon">▦</span>
-      </div>
+    <Card as="article" className="panel create-panel" id="create">
+      <SectionHeading
+        className="panel-heading"
+        title="Create a QR Code"
+        description="Generate a QR code in seconds."
+        level={3}
+        actions={<span className="create-icon">▦</span>}
+      />
 
       <form onSubmit={onSubmit}>
         <label htmlFor="qr-title">QR Code Name</label>
-        <input
+        <Input
           id="qr-title"
           type="text"
           placeholder="e.g. My Website"
@@ -41,17 +42,17 @@ function QrCodeCreatePanel({
         />
 
         <label htmlFor="qr-mode">QR Code Mode</label>
-        <select
+        <Select
           id="qr-mode"
           value={qrMode}
           onChange={(event) => onQrModeChange(event.target.value)}
         >
           <option value="static">Static QR Code</option>
           <option value="dynamic">Dynamic QR Code</option>
-        </select>
+        </Select>
 
         <label htmlFor="qr-type">Content Type</label>
-        <select
+        <Select
           id="qr-type"
           value={qrType}
           onChange={(event) => onQrTypeChange(event.target.value)}
@@ -60,12 +61,13 @@ function QrCodeCreatePanel({
           <option value="Text" disabled={qrMode === 'dynamic'}>
             Plain Text
           </option>
-        </select>
+        </Select>
 
         <label htmlFor="qr-content">
           {qrType === 'URL' ? 'Website URL' : 'Text Content'}
         </label>
-        <textarea
+        <Input
+          as="textarea"
           id="qr-content"
           placeholder={
             qrType === 'URL'
@@ -80,13 +82,15 @@ function QrCodeCreatePanel({
 
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        <button
-          className="primary-button generate-button"
+        <Button
+          className="generate-button"
           type="submit"
           disabled={isGenerating}
+          isLoading={isGenerating}
+          loadingLabel="Generating QR code"
         >
           {isGenerating ? 'Generating...' : '✦  Generate QR Code'}
-        </button>
+        </Button>
       </form>
 
       {generatedQR && (
@@ -100,7 +104,7 @@ function QrCodeCreatePanel({
             <span>QR code generated successfully</span>
 
             <label htmlFor="qr-export-size">Export dimensions</label>
-            <select
+            <Select
               id="qr-export-size"
               className="period-select"
               value={qrExportSize}
@@ -109,24 +113,26 @@ function QrCodeCreatePanel({
               <option value="280">280 × 280</option>
               <option value="512">512 × 512</option>
               <option value="1024">1024 × 1024</option>
-            </select>
+            </Select>
 
             <div className="action-buttons">
-              <button
+              <Button
                 type="button"
-                className="edit-button"
+                variant="secondary"
+                size="sm"
                 onClick={() => onDownload('png')}
               >
                 ↓ PNG
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
-                className="edit-button"
+                variant="secondary"
+                size="sm"
                 onClick={() => onDownload('svg')}
               >
                 ↓ SVG
-              </button>
+              </Button>
             </div>
 
             {exportError && (
@@ -135,7 +141,7 @@ function QrCodeCreatePanel({
           </div>
         </div>
       )}
-    </article>
+    </Card>
   )
 }
 

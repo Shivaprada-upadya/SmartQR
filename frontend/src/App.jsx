@@ -159,6 +159,7 @@ function App() {
     resetQrList()
     resetOverview()
     setSelectedAnalyticsQr('')
+    setActiveNav('Overview')
   }
 
   const analyticsRangeLabels = {
@@ -198,6 +199,8 @@ function App() {
       <main className="main-content" id="overview">
         <DashboardHeader
           activeNav={activeNav}
+          user={user}
+          userInitials={userInitials}
           onCreateQr={() => scrollToSection('create', 'Create QR')}
         />
 
@@ -263,7 +266,7 @@ function App() {
             pageSize,
           }}
           actions={{
-            onViewAll: () => setActiveNav('My QR Codes'),
+            onViewAll: () => scrollToSection('recent', 'My QR Codes'),
             onSearchChange: handleSearchChange,
             onQrTypeFilterChange: handleQrTypeFilterChange,
             onStatusFilterChange: handleStatusFilterChange,

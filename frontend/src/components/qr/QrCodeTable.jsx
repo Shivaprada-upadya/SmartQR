@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { Badge, Button, EmptyState, LoadingSpinner } from '../ui'
 
 const qrCodeShape = PropTypes.shape({
   id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
@@ -12,42 +13,46 @@ const qrCodeShape = PropTypes.shape({
 function QrCodeActions({ item, onEdit, onDownload, onDelete }) {
   return (
     <div className="action-buttons">
-      <button
+      <Button
         type="button"
-        className="edit-button"
+        variant="secondary"
+        size="sm"
         onClick={() => onEdit(item)}
         aria-label={`Edit ${item.title}`}
         title="Edit QR code"
       >
         Edit
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className="edit-button"
+        variant="secondary"
+        size="sm"
         onClick={() => onDownload(item, 'png')}
         aria-label={`Download PNG for ${item.title}`}
         title="Download PNG"
       >
         PNG
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className="edit-button"
+        variant="secondary"
+        size="sm"
         onClick={() => onDownload(item, 'svg')}
         aria-label={`Download SVG for ${item.title}`}
         title="Download SVG"
       >
         SVG
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className="delete-button"
+        variant="danger"
+        size="sm"
         onClick={() => onDelete(item.id)}
         aria-label={`Delete ${item.title}`}
         title="Delete QR code"
       >
         Delete
-      </button>
+      </Button>
     </div>
   )
 }
@@ -77,10 +82,13 @@ function QrCodeMobileCard({
             <strong>{item.title}</strong>
           </div>
           <div className="qr-mobile-badges">
-            <span className="type-badge">{item.type}</span>
-            <span className={`status-badge ${item.status.toLowerCase()}`}>
+            <Badge variant="info">{item.type}</Badge>
+            <Badge
+              variant={item.status === 'Active' ? 'success' : 'warning'}
+              className={`qr-status-badge ${item.status.toLowerCase()}`}
+            >
               <span></span>{item.status}
-            </span>
+            </Badge>
           </div>
         </div>
       </div>
@@ -152,7 +160,9 @@ function QrCodeTable({
           <tbody>
             {isLoadingQrs && (
               <tr>
-                <td colSpan="7">Loading QR codes...</td>
+                <td colSpan="7">
+                  <LoadingSpinner label="Loading QR codes..." showLabel />
+                </td>
               </tr>
             )}
 
@@ -165,7 +175,10 @@ function QrCodeTable({
             {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
               <tr>
                 <td colSpan="7">
-                  No QR codes found. Create your first QR code!
+                  <EmptyState
+                    title="No QR codes found."
+                    description="Create your first QR code!"
+                  />
                 </td>
               </tr>
             )}
@@ -193,12 +206,15 @@ function QrCodeTable({
                     {item.destination}
                   </td>
                   <td>
-                    <span className="type-badge">{item.type}</span>
+                    <Badge variant="info">{item.type}</Badge>
                   </td>
                   <td>
-                    <span className={`status-badge ${item.status.toLowerCase()}`}>
+                    <Badge
+                      variant={item.status === 'Active' ? 'success' : 'warning'}
+                      className={`qr-status-badge ${item.status.toLowerCase()}`}
+                    >
                       <span></span>{item.status}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="date-cell">{item.created}</td>
                   <td>
@@ -231,9 +247,9 @@ function QrCodeTable({
         </label>
 
         {isLoadingQrs && (
-          <p className="qr-mobile-message" role="status">
-            Loading QR codes...
-          </p>
+          <div className="qr-mobile-message">
+            <LoadingSpinner label="Loading QR codes..." showLabel />
+          </div>
         )}
         {!isLoadingQrs && qrListError && (
           <p className="qr-mobile-message" role="alert">
@@ -241,9 +257,11 @@ function QrCodeTable({
           </p>
         )}
         {!isLoadingQrs && !qrListError && qrCodes.length === 0 && (
-          <p className="qr-mobile-message">
-            No QR codes found. Create your first QR code!
-          </p>
+          <EmptyState
+            className="qr-mobile-message"
+            title="No QR codes found."
+            description="Create your first QR code!"
+          />
         )}
         {!isLoadingQrs && !qrListError && qrCodes.length > 0 && (
           <ul className="qr-mobile-list" aria-label="QR codes">

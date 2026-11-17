@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
+import { Button, Input } from '../ui'
 
 function EditQrModal({
   editingQr,
@@ -103,7 +104,7 @@ function EditQrModal({
         <form onSubmit={onSubmit}>
           <div className="edit-form-group">
             <label htmlFor="edit-title">QR Code Title</label>
-            <input
+            <Input
               id="edit-title"
               type="text"
               value={editTitle}
@@ -117,7 +118,8 @@ function EditQrModal({
             <label htmlFor="edit-destination">
               Destination / Content
             </label>
-            <textarea
+            <Input
+              as="textarea"
               id="edit-destination"
               value={editDestination}
               onChange={(event) =>
@@ -136,22 +138,26 @@ function EditQrModal({
           )}
 
           <div className="edit-modal-actions">
-            <button
+            <Button
               type="button"
-              className="cancel-edit-button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
               disabled={isUpdating}
             >
               Cancel
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="submit"
-              className="primary-button"
+              variant="primary"
+              size="sm"
               disabled={isUpdating}
+              isLoading={isUpdating}
+              loadingLabel="Saving changes"
             >
               {isUpdating ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

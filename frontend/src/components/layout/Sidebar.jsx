@@ -1,63 +1,55 @@
 import PropTypes from 'prop-types'
-
-const navigation = [
-  { label: 'Overview', icon: '◫', target: 'overview' },
-  { label: 'Create QR', icon: '▦', target: 'create' },
-  { label: 'My QR Codes', icon: '▤', target: 'recent' },
-  { label: 'Analytics', icon: '▥', target: 'analytics' },
-]
+import { Button } from '../ui'
+import BrandMark from './BrandMark'
+import Icon from './Icon'
+import navigationItems from './navigation'
+import UserIdentity from './UserIdentity'
 
 function Sidebar({ user, userInitials, activeNav, onNavigate, onLogout }) {
   return (
     <aside className="sidebar">
-      <a className="brand" href="#overview">
-        <span className="brand-icon">S</span>
-        <span>Smart<span className="brand-accent">QR</span></span>
-      </a>
+      <BrandMark />
 
       <div className="workspace-label">WORKSPACE</div>
 
       <nav className="navigation" aria-label="Main navigation">
-        {navigation.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className={`nav-item ${activeNav === item.label ? 'active' : ''}`}
-            aria-current={activeNav === item.label ? 'page' : undefined}
-            onClick={() => onNavigate(item.target, item.label)}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
+        {navigationItems.map((item) => {
+          const isActive = activeNav === item.label
+
+          return (
+            <button
+              key={item.label}
+              type="button"
+              className={`nav-item ${isActive ? 'active' : ''}`}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={item.label}
+              title={item.label}
+              onClick={() => onNavigate(item.target, item.label)}
+            >
+              <Icon name={item.icon} className="nav-icon" />
+              <span className="nav-item-label">{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
 
-      <div className="sidebar-bottom">
-        <div className="upgrade-card">
-          <div className="upgrade-icon">✦</div>
-          <h3>Unlock more with SmartQR</h3>
-          <p>Advanced analytics and powerful QR management features.</p>
-          <span className="coming-soon">COMING SOON</span>
-        </div>
-
-        <div className="profile">
-          <span className="avatar">{userInitials || 'U'}</span>
-
-          <span className="profile-info">
-            <strong>{user.name}</strong>
-            <small>{user.email}</small>
-          </span>
-
-          <button
-            type="button"
-            className="profile-menu"
-            onClick={onLogout}
-            title="Sign out"
-            aria-label="Sign out"
-          >
-            ↪
-          </button>
-        </div>
+      <div className="sidebar-profile">
+        <UserIdentity
+          user={user}
+          userInitials={userInitials}
+          className="sidebar-identity"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="profile-signout"
+          leadingIcon={<Icon name="logout" size={18} />}
+          aria-label="Sign out"
+          title="Sign out"
+          onClick={onLogout}
+        >
+          <span className="profile-signout-label">Sign out</span>
+        </Button>
       </div>
     </aside>
   )

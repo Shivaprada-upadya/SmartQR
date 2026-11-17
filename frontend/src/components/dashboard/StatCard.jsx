@@ -1,15 +1,16 @@
 import PropTypes from 'prop-types'
+import { Card } from '../ui'
 
 function StatCard({ title, icon, tone, value, footer }) {
   return (
-    <article className="stat-card">
+    <Card as="article" className="stat-card" padding="none">
       <div className="stat-top">
         <span>{title}</span>
         <span className={`stat-icon ${tone}`}>{icon}</span>
       </div>
       <div className="stat-value">{value}</div>
       <div className="stat-foot">{footer}</div>
-    </article>
+    </Card>
   )
 }
 

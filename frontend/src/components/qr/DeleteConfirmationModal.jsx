@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
+import { Button } from '../ui'
 
 function DeleteConfirmationModal({
   confirmation,
@@ -104,21 +105,25 @@ function DeleteConfirmationModal({
         )}
 
         <div className="edit-modal-actions">
-          <button
+          <Button
             type="button"
-            className="cancel-edit-button"
+            variant="secondary"
+            size="sm"
             onClick={onClose}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="delete-button"
+            variant="danger"
+            size="sm"
             onClick={onConfirm}
             disabled={isDeleting}
+            isLoading={isDeleting}
+            loadingLabel="Deleting QR code"
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

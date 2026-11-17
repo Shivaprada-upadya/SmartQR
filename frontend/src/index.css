@@ -12,10 +12,12 @@
   --color-surface-raised: #1f2330;
   --color-border: #252938;
   --color-border-strong: #303546;
+  --color-border-subtle: #1c202c;
 
   --color-text-primary: #eef0f7;
   --color-text-secondary: #a7adbd;
   --color-text-muted: #858ba0;
+  --color-text-inverse: #0b0d14;
 
   --color-brand: #9575ff;
   --color-brand-strong: #704bd5;
@@ -40,10 +42,12 @@
   --color-warning-light: #ffb56f;
   --color-warning-surface: #39302a;
   --color-danger: #ff8585;
+  --color-danger-light: #ff9c9c;
   --color-danger-surface: #ff646414;
   --color-danger-border: #ff64664d;
   --color-danger-surface-hover: #ff64662e;
   --color-focus: #c1adff;
+  --color-overlay: rgb(5 7 12 / 72%);
 
   --breakpoint-compact: 24.375rem;
   --breakpoint-small: 37.5rem;
@@ -59,7 +63,10 @@
   --surface: var(--color-surface);
   --surface-hover: var(--color-surface-hover);
   --border: var(--color-border);
+  --border-subtle: var(--color-border-subtle);
+  --border-strong: var(--color-border-strong);
   --text: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
   --muted: var(--color-text-muted);
   --purple: var(--color-brand);
   --purple-light: var(--color-brand-light);
@@ -72,26 +79,52 @@
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
 
   --radius-sm: 0.375rem;
   --radius-control: 0.5rem;
+  --radius-md: 0.75rem;
   --radius-card: 0.6875rem;
   --radius-dialog: 0.875rem;
   --radius-pill: 9999px;
 
-  --font-size-caption: 0.625rem;
+  --font-size-micro: 0.6875rem;
+  --font-size-caption: 0.75rem;
+  --font-size-body-sm: 0.8125rem;
   --font-size-body: 0.875rem;
+  --font-size-heading-sm: 1rem;
   --font-size-heading: 1.125rem;
+  --font-size-display-sm: 1.375rem;
   --font-size-display: 1.5rem;
+  --font-size-title: 1.875rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --line-height-tight: 1.25;
   --line-height-body: 1.5;
+  --line-height-relaxed: 1.65;
 
+  --control-height-sm: 2rem;
+  --control-height-md: 2.625rem;
+  --control-height-lg: 3rem;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 12%);
   --shadow-brand: 0 5px 20px #865cff35;
   --shadow-brand-hover: 0 6px 20px #8055ed35;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 16%);
+  --shadow-floating: 0 12px 32px rgb(0 0 0 / 24%);
   --shadow-dialog: 0 20px 60px rgb(0 0 0 / 40%);
 
-  --transition-fast: 150ms ease;
-  --transition-standard: 200ms ease;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --transition-fast: 150ms var(--ease-standard);
+  --transition-standard: 200ms var(--ease-standard);
+  --transition-slow: 300ms var(--ease-standard);
 }
 
 @layer base {
@@ -137,13 +170,24 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
   }
 
   ::selection {
     color: white;
     background: #6941c6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

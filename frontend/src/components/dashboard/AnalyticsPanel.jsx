@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { Card, EmptyState, SectionHeading, Select } from '../ui'
 
 const analyticsRangeLabels = {
   '7d': 'Last 7 days',
@@ -102,44 +103,45 @@ function AnalyticsPanel({
 
   return (
     <>
-      <article className="panel analytics-panel" id="analytics">
-        <div className="panel-heading">
-          <div>
-            <h3>Scan Analytics</h3>
-            <p>Track how your QR codes perform over time.</p>
-          </div>
+      <Card as="article" className="panel analytics-panel" id="analytics">
+        <SectionHeading
+          className="panel-heading"
+          title="Scan Analytics"
+          description="Track how your QR codes perform over time."
+          level={3}
+          actions={(
+            <div className="analytics-filters">
+              <Select
+                className="period-select"
+                value={selectedAnalyticsQr || ''}
+                onChange={(event) => onAnalyticsQrChange(event.target.value)}
+                disabled={qrCodes.length === 0}
+                aria-label="Select QR code"
+              >
+                {qrCodes.length === 0 ? (
+                  <option value="">No QR codes available</option>
+                ) : (
+                  qrCodes.map((qr) => (
+                    <option key={qr.id} value={String(qr.id)}>
+                      {qr.title}
+                    </option>
+                  ))
+                )}
+              </Select>
 
-          <div className="analytics-filters">
-            <select
-              className="period-select"
-              value={selectedAnalyticsQr || ''}
-              onChange={(event) => onAnalyticsQrChange(event.target.value)}
-              disabled={qrCodes.length === 0}
-              aria-label="Select QR code"
-            >
-              {qrCodes.length === 0 ? (
-                <option value="">No QR codes available</option>
-              ) : (
-                qrCodes.map((qr) => (
-                  <option key={qr.id} value={String(qr.id)}>
-                    {qr.title}
-                  </option>
-                ))
-              )}
-            </select>
-
-            <select
-              className="period-select"
-              value={analyticsRange}
-              onChange={(event) => onAnalyticsRangeChange(event.target.value)}
-              aria-label="Analytics date range"
-            >
-              {Object.entries(analyticsRangeLabels).map(([range, label]) => (
-                <option key={range} value={range}>{label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <Select
+                className="period-select"
+                value={analyticsRange}
+                onChange={(event) => onAnalyticsRangeChange(event.target.value)}
+                aria-label="Analytics date range"
+              >
+                {Object.entries(analyticsRangeLabels).map(([range, label]) => (
+                  <option key={range} value={range}>{label}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+        />
 
         <div className="chart-summary">
           <strong>
@@ -222,66 +224,66 @@ function AnalyticsPanel({
               : analyticsError || 'Live analytics data'}
           </span>
         </div>
-      </article>
+      </Card>
 
       <section className="analytics-details">
-        <article className="panel breakdown-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Device Breakdown</h3>
-              <p>Devices used to scan this QR code.</p>
-            </div>
-          </div>
+        <Card as="article" className="panel breakdown-panel">
+          <SectionHeading
+            className="panel-heading"
+            title="Device Breakdown"
+            description="Devices used to scan this QR code."
+            level={3}
+          />
           {renderBreakdown(
             deviceBreakdown,
             'device_type',
             'Loading device data...',
             'No device scan data available yet.',
           )}
-        </article>
+        </Card>
 
-        <article className="panel breakdown-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Browser Breakdown</h3>
-              <p>Browsers used for QR scans.</p>
-            </div>
-          </div>
+        <Card as="article" className="panel breakdown-panel">
+          <SectionHeading
+            className="panel-heading"
+            title="Browser Breakdown"
+            description="Browsers used for QR scans."
+            level={3}
+          />
           {renderBreakdown(
             browserBreakdown,
             'browser',
             'Loading browser data...',
             'No browser scan data available yet.',
           )}
-        </article>
+        </Card>
 
-        <article className="panel breakdown-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Operating Systems</h3>
-              <p>Operating systems used for QR scans.</p>
-            </div>
-          </div>
+        <Card as="article" className="panel breakdown-panel">
+          <SectionHeading
+            className="panel-heading"
+            title="Operating Systems"
+            description="Operating systems used for QR scans."
+            level={3}
+          />
           {renderBreakdown(
             operatingSystemBreakdown,
             'operating_system',
             'Loading operating system data...',
             'No operating system data available yet.',
           )}
-        </article>
+        </Card>
 
-        <article className="panel recent-scans-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Recent Scan Activity</h3>
-              <p>Latest 10 scans for the selected QR code.</p>
-            </div>
-          </div>
+        <Card as="article" className="panel recent-scans-panel">
+          <SectionHeading
+            className="panel-heading"
+            title="Recent Scan Activity"
+            description="Latest 10 scans for the selected QR code."
+            level={3}
+          />
 
           {isLoadingAnalytics ? (
             <p>Loading recent scans...</p>
           ) : recentScans.length === 0 ? (
-            <p>No scans recorded yet.</p>
+            <EmptyState title="No scans recorded yet." />
           ) : (
             <div className="recent-scans-list">
               {recentScans.map((scan) => (
@@ -303,7 +305,7 @@ function AnalyticsPanel({
               ))}
             </div>
           )}
-        </article>
+        </Card>
       </section>
     </>
   )

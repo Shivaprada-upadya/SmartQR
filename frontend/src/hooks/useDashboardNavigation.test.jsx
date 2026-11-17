@@ -10,7 +10,7 @@ afterEach(() => {
 describe('useDashboardNavigation', () => {
   it('derives initials and marks the target section active when navigating', () => {
     const section = document.createElement('section')
-    section.id = 'my-qr-codes'
+    section.id = 'recent'
     section.scrollIntoView = vi.fn()
     document.body.append(section)
     const { result } = renderHook(() =>
@@ -19,7 +19,7 @@ describe('useDashboardNavigation', () => {
 
     expect(result.current.userInitials).toBe('JD')
 
-    act(() => result.current.scrollToSection('my-qr-codes', 'My QR Codes'))
+    act(() => result.current.scrollToSection('recent', 'My QR Codes'))
 
     expect(result.current.activeNav).toBe('My QR Codes')
     expect(section.scrollIntoView).toHaveBeenCalledWith({

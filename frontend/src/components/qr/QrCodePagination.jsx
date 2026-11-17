@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { Button, Select } from '../ui'
 
 function QrCodePagination({
   qrCodesCount,
@@ -21,7 +22,7 @@ function QrCodePagination({
 
       <div className="pagination-actions">
         <label htmlFor="page-size">Rows per page:</label>
-        <select
+        <Select
           id="page-size"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
@@ -29,25 +30,27 @@ function QrCodePagination({
           <option value={5}>5</option>
           <option value={10}>10</option>
           <option value={20}>20</option>
-        </select>
+        </Select>
 
-        <button
+        <Button
           type="button"
-          className="pagination-button"
+          variant="secondary"
+          size="sm"
           disabled={!pagination.hasPreviousPage || isLoadingQrs}
           onClick={() => onPageChange(currentPage - 1)}
         >
           Previous
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
-          className="pagination-button"
+          variant="secondary"
+          size="sm"
           disabled={!pagination.hasNextPage || isLoadingQrs}
           onClick={() => onPageChange(currentPage + 1)}
         >
           Next
-        </button>
+        </Button>
       </div>
     </div>
   )

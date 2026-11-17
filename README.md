@@ -8,6 +8,7 @@ SmartQR is a full-stack QR code management application. Users can create and man
 - Create static QR codes for URLs or text, and dynamic QR codes that redirect through a short link.
 - Edit, activate, deactivate, delete, and bulk-manage QR codes.
 - Search and filter the QR list, with server-side pagination and sorting, in a desktop table or mobile-friendly cards.
+- Navigate a responsive dashboard with account-aware page titles and QR workspace sections.
 - Download QR images as PNG or SVG.
 - Review per-QR scan trends, device, browser, operating system, and recent scan data.
 
@@ -35,6 +36,7 @@ frontend/src/components/Auth.jsx  Registration and sign-in form
 frontend/src/components/dashboard/  Analytics and statistics presentation
 frontend/src/components/layout/     Dashboard navigation and header
 frontend/src/components/qr/          QR creation, editing, and management UI
+frontend/src/components/ui/          Shared accessible UI primitives and variants
 frontend/src/services/               Frontend API clients
 frontend/src/hooks/                  Session, dashboard navigation, QR list and controls, selection, management, analytics, overview, creation, editing, and export workflows
 ```
