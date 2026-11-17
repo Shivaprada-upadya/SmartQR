@@ -145,4 +145,35 @@ describe('useQrList', () => {
       expect(result.current.qrCodes[0]?.id).toBe('qr-2'),
     )
   })
+
+  it('ignores a previous account response that arrives after switching users', async () => {
+    const pendingResponses = []
+    mocks.getQrCodes.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pendingResponses.push(resolve)
+        }),
+    )
+    const firstUser = { id: 'user-1' }
+    const nextUser = { id: 'user-2' }
+    const setSelectedAnalyticsQr = vi.fn()
+    const { result, rerender } = renderHook(
+      ({ user }) => useQrList(user, setSelectedAnalyticsQr),
+      { initialProps: { user: firstUser } },
+    )
+
+    await waitFor(() => expect(pendingResponses).toHaveLength(1))
+    rerender({ user: nextUser })
+    await waitFor(() => expect(pendingResponses).toHaveLength(2))
+
+    const makeResponse = (id) => ({
+      data: { qrCodes: [{ ...response.data.qrCodes[0], id }] },
+      pagination,
+    })
+    await act(async () => pendingResponses[0](makeResponse('old-qr')))
+    expect(result.current.qrCodes).toEqual([])
+
+    await act(async () => pendingResponses[1](makeResponse('new-qr')))
+    await waitFor(() => expect(result.current.qrCodes[0]?.id).toBe('new-qr'))
+  })
 })
