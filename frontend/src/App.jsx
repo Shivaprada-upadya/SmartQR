@@ -15,13 +15,10 @@ import useQrAnalytics from './hooks/useQrAnalytics'
 import useQrExport from './hooks/useQrExport'
 import useQrOverview from './hooks/useQrOverview'
 import useQrList from './hooks/useQrList'
+import useQrEdit from './hooks/useQrEdit'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
-import {
-  bulkManageQrCodes,
-  deleteQrCode,
-  updateQrCode,
-} from './services/qr.service'
+import { bulkManageQrCodes, deleteQrCode } from './services/qr.service'
 
 function App() {
   
@@ -62,20 +59,27 @@ function App() {
     refreshQrCodes,
   } = useQrList(user, setSelectedAnalyticsQr)
   const {
+    editingQr,
+    editTitle,
+    editDestination,
+    editError,
+    isUpdating,
+    setEditTitle,
+    setEditDestination,
+    closeEdit,
+    handleEditClick,
+    handleUpdateQr,
+  } = useQrEdit(setQrCodes)
+  const {
     overview: qrOverview,
     isLoadingOverview,
     overviewError,
     refreshOverview,
     resetOverview,
   } = useQrOverview(user)
-  const [editingQr, setEditingQr] = useState(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState(null)
   const [deleteConfirmationError, setDeleteConfirmationError] = useState('')
   const [isDeletingQr, setIsDeletingQr] = useState(false)
-  const [editTitle, setEditTitle] = useState('')
-  const [editDestination, setEditDestination] = useState('')
-  const [editError, setEditError] = useState('')
-  const [isUpdating, setIsUpdating] = useState(false)
 
   const {
     qrExportSize,
@@ -317,57 +321,6 @@ function App() {
   }
 
 
-const handleUpdateQr = async (event) => {
-  event.preventDefault()
-  setEditError('')
-
-  const cleanTitle = editTitle.trim()
-  const cleanDestination = editDestination.trim()
-
-  if (!cleanTitle || !cleanDestination) {
-    setEditError('Please enter both title and destination.')
-    return
-  }
-
-  try {
-    setIsUpdating(true)
-
-    await updateQrCode(editingQr.id, {
-      title: cleanTitle,
-      destination: cleanDestination,
-    })
-
-    setQrCodes((previous) =>
-      previous.map((item) =>
-        item.id === editingQr.id
-          ? {
-              ...item,
-              title: cleanTitle,
-              destination: cleanDestination,
-            }
-          : item,
-      ),
-    )
-
-    setEditingQr(null)
-    setEditTitle('')
-    setEditDestination('')
-  } catch (requestError) {
-    setEditError(
-      requestError.message || 'Unable to update the QR code.',
-    )
-  } finally {
-    setIsUpdating(false)
-  }
-}
-
-  const handleEditClick = (item) => {
-    setEditingQr(item)
-    setEditTitle(item.title)
-    setEditDestination(item.destination)
-    setEditError('')
-  }
- 
   const scrollToSection = (target, label) => {
     setActiveNav(label)
     document.getElementById(target)?.scrollIntoView({
@@ -503,7 +456,7 @@ const handleUpdateQr = async (event) => {
           onEditTitleChange={setEditTitle}
           onEditDestinationChange={setEditDestination}
           onSubmit={handleUpdateQr}
-          onClose={() => setEditingQr(null)}
+          onClose={closeEdit}
         />
 
         <DeleteConfirmationModal

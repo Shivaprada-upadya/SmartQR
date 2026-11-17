@@ -36,7 +36,7 @@ frontend/src/components/dashboard/  Analytics and statistics presentation
 frontend/src/components/layout/     Dashboard navigation and header
 frontend/src/components/qr/          QR creation, editing, and management UI
 frontend/src/services/               Frontend API clients
-frontend/src/hooks/                  QR list, analytics, overview, creation, and export workflows
+frontend/src/hooks/                  QR list, analytics, overview, creation, editing, and export workflows
 ```
 
 The shared frontend theme and global styles are in `frontend/src/index.css`; dashboard-specific styles are in `frontend/src/App.css`. Prefer the shared design tokens there when adding or updating UI styles.
