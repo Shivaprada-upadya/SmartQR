@@ -54,4 +54,19 @@ describe('useQrAnalytics', () => {
 
     expect(mocks.getQrAnalytics).not.toHaveBeenCalled()
   })
+
+  it('clears loaded analytics when the selected QR is cleared', async () => {
+    const response = { data: { summary: { total_scans: 12 } } }
+    mocks.getQrAnalytics.mockResolvedValue(response)
+    const { result } = renderHook(() => useQrAnalytics({ id: 'user-1' }))
+
+    act(() => result.current.setSelectedQr('qr-1'))
+    await waitFor(() => expect(result.current.analytics).toBe(response.data))
+
+    act(() => result.current.setSelectedQr(''))
+
+    await waitFor(() => expect(result.current.analytics).toBeNull())
+    expect(result.current.analyticsError).toBe('')
+    expect(result.current.isLoadingAnalytics).toBe(false)
+  })
 })

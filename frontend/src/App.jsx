@@ -156,6 +156,7 @@ function App() {
     clearSession()
     clearSelection()
     resetOverview()
+    setSelectedAnalyticsQr('')
   }
 
   const analyticsRangeLabels = {

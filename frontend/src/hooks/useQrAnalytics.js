@@ -45,13 +45,15 @@ export default function useQrAnalytics(user) {
     }
   }, [user, selectedQr, range])
 
+  const hasAnalyticsContext = Boolean(user && selectedQr)
+
   return {
     selectedQr,
     setSelectedQr,
     range,
     setRange,
-    analytics,
-    isLoadingAnalytics,
-    analyticsError,
+    analytics: hasAnalyticsContext ? analytics : null,
+    isLoadingAnalytics: hasAnalyticsContext && isLoadingAnalytics,
+    analyticsError: hasAnalyticsContext ? analyticsError : '',
   }
 }
