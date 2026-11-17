@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './App.css'
 
 import Auth from './components/Auth'
@@ -16,14 +16,11 @@ import useQrExport from './hooks/useQrExport'
 import useQrOverview from './hooks/useQrOverview'
 import useQrList from './hooks/useQrList'
 import useQrEdit from './hooks/useQrEdit'
-import { getToken } from './services/api'
-import { getCurrentUser, logout } from './services/auth.service'
+import useSession from './hooks/useSession'
 import { bulkManageQrCodes, deleteQrCode } from './services/qr.service'
 
 function App() {
-  
-  const [user, setUser] = useState(null)
-  const [isCheckingSession, setIsCheckingSession] = useState(true)
+  const { user, setUser, isCheckingSession, clearSession } = useSession()
   
   const [activeNav, setActiveNav] = useState('Overview')
   const [selectedQrIds, setSelectedQrIds] = useState([])
@@ -122,29 +119,8 @@ function App() {
   .slice(0, 2)
   .toUpperCase()
 
-  useEffect(() => {
-    const restoreSession = async () => {
-      if (!getToken()) {
-        setIsCheckingSession(false)
-        return
-      }
-      
-      try {
-        const currentUser = await getCurrentUser()
-        setUser(currentUser)
-      } catch {
-        logout()
-      } finally {
-        setIsCheckingSession(false)
-      }
-    }
-    
-    restoreSession()
-  }, [])
-
   const handleLogout = () => {
-    logout()
-    setUser(null)
+    clearSession()
     setSelectedQrIds([])
     resetOverview()
   }
