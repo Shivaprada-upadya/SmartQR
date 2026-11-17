@@ -60,6 +60,34 @@ describe('useQrManagement', () => {
     expect(result.current.deleteConfirmation).toBeNull()
   })
 
+  it('surfaces single-delete failures and keeps the confirmation open', async () => {
+    mocks.deleteQrCode.mockRejectedValue(new Error('Delete failed'))
+    const { result, props } = renderQrManagement()
+
+    act(() => result.current.handleDeleteQr('qr-1'))
+    await act(() => result.current.handleConfirmDelete())
+
+    expect(result.current.deleteConfirmation).toMatchObject({
+      type: 'single',
+      id: 'qr-1',
+    })
+    expect(result.current.deleteConfirmationError).toBe('Delete failed')
+    expect(props.setQrListError).toHaveBeenCalledWith('Delete failed')
+    expect(result.current.isDeletingQr).toBe(false)
+  })
+
+  it('moves to the previous page when deleting its last QR code', async () => {
+    mocks.deleteQrCode.mockResolvedValue({})
+    const { result, props } = renderQrManagement({ currentPage: 2 })
+
+    act(() => result.current.handleDeleteQr('qr-1'))
+    await act(() => result.current.handleConfirmDelete())
+
+    expect(props.setCurrentPage).toHaveBeenCalledOnce()
+    expect(props.setCurrentPage.mock.calls[0][0](2)).toBe(1)
+    expect(props.refreshQrCodes).not.toHaveBeenCalled()
+  })
+
   it('requires confirmation before bulk deletion and refreshes after success', async () => {
     mocks.bulkManageQrCodes.mockResolvedValue({ message: 'Deleted 2 QR codes.' })
     const props = {
