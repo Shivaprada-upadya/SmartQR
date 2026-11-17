@@ -14,12 +14,12 @@ import useQrCreation from './hooks/useQrCreation'
 import useQrAnalytics from './hooks/useQrAnalytics'
 import useQrExport from './hooks/useQrExport'
 import useQrOverview from './hooks/useQrOverview'
+import useQrList from './hooks/useQrList'
 import { getToken } from './services/api'
 import { getCurrentUser, logout } from './services/auth.service'
 import {
   bulkManageQrCodes,
   deleteQrCode,
-  getQrCodes,
   updateQrCode,
 } from './services/qr.service'
 
@@ -29,27 +29,10 @@ function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   
   const [activeNav, setActiveNav] = useState('Overview')
-  const [qrCodes, setQrCodes] = useState([])
-  const [isLoadingQrs, setIsLoadingQrs] = useState(false)
   const [selectedQrIds, setSelectedQrIds] = useState([])
   const [isBulkManaging, setIsBulkManaging] = useState(false)
   const [bulkActionError, setBulkActionError] = useState('')
   const [bulkActionMessage, setBulkActionMessage] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(5)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
-  const [qrTypeFilter, setQrTypeFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [listRefreshKey, setListRefreshKey] = useState(0)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 5,
-    totalRecords: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  })
   const {
     selectedQr: selectedAnalyticsQr,
     setSelectedQr: setSelectedAnalyticsQr,
@@ -60,14 +43,31 @@ function App() {
     analyticsError,
   } = useQrAnalytics(user)
   const {
+    qrCodes,
+    setQrCodes,
+    isLoadingQrs,
+    qrListError,
+    setQrListError,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    searchTerm,
+    setSearchTerm,
+    qrTypeFilter,
+    setQrTypeFilter,
+    statusFilter,
+    setStatusFilter,
+    pagination,
+    refreshQrCodes,
+  } = useQrList(user, setSelectedAnalyticsQr)
+  const {
     overview: qrOverview,
     isLoadingOverview,
     overviewError,
     refreshOverview,
     resetOverview,
   } = useQrOverview(user)
-  const [qrListError, setQrListError] = useState('')
-
   const [editingQr, setEditingQr] = useState(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState(null)
   const [deleteConfirmationError, setDeleteConfirmationError] = useState('')
@@ -103,7 +103,7 @@ function App() {
     handleGenerate,
   } = useQrCreation(() => {
     setCurrentPage(1)
-    setListRefreshKey((key) => key + 1)
+    refreshQrCodes()
     refreshOverview()
     setSelectedQrIds([])
     setBulkActionError('')
@@ -137,92 +137,6 @@ function App() {
     
     restoreSession()
   }, [])
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm)
-    }, 300)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [searchTerm])
-  
-  useEffect(() => {
-    if (!user || searchTerm !== debouncedSearchTerm) return
-    
-    let isMounted = true
-    
-    const fetchQrCodes = async () => {
-      setIsLoadingQrs(true)
-      setQrListError('')
-      
-      try {
-        const response = await getQrCodes({
-          page: currentPage,
-          limit: pageSize,
-          search: debouncedSearchTerm,
-          qrType: qrTypeFilter || undefined,
-          isActive: statusFilter === ''
-            ? undefined
-            : statusFilter,
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
-        })
-        
-        if (!isMounted) return
-        
-        const formattedQrCodes = response.data.qrCodes.map((item) => ({
-          id: item.id,
-          title: item.title,
-          destination: item.destination,
-          short_code: item.short_code,
-          type: item.qr_type.toUpperCase(),
-          status: item.is_active ? 'Active' : 'Inactive',
-          created: new Date(item.created_at).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          }),
-        }))
-        
-        setQrCodes(formattedQrCodes)
-        setPagination(response.pagination)
-
-        setSelectedAnalyticsQr((current) => {
-          if (current) {
-            return current
-          }
-
-          return formattedQrCodes.length > 0
-            ? String(formattedQrCodes[0].id)
-            : ''
-        })
-      } catch (requestError) {
-        if (isMounted) {
-          setQrListError(requestError.message || 'Unable to load QR codes.')
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingQrs(false)
-        }
-      }
-    }
-    
-    fetchQrCodes()
-    
-    return () => {
-      isMounted = false
-    }
-  }, [
-    user,
-    currentPage,
-    pageSize,
-    listRefreshKey,
-    searchTerm,
-    debouncedSearchTerm,
-    qrTypeFilter,
-    statusFilter,
-    setSelectedAnalyticsQr,
-  ])
 
   const handleLogout = () => {
     logout()
@@ -326,7 +240,7 @@ function App() {
         if (currentPage > 1 && qrCodes.length === 1) {
           setCurrentPage((page) => page - 1)
         } else {
-          setListRefreshKey((key) => key + 1)
+          refreshQrCodes()
         }
 
         setDeleteConfirmation(null)
@@ -355,7 +269,7 @@ function App() {
 
       setSelectedQrIds([])
       setCurrentPage(1)
-      setListRefreshKey((key) => key + 1)
+      refreshQrCodes()
       refreshOverview()
       setBulkActionMessage(response.message)
       setDeleteConfirmation(null)
@@ -390,7 +304,7 @@ function App() {
 
       setSelectedQrIds([])
       setCurrentPage(1)
-      setListRefreshKey((key) => key + 1)
+      refreshQrCodes()
       refreshOverview()
       setBulkActionMessage(response.message)
     } catch (requestError) {
