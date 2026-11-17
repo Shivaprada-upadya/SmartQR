@@ -17,13 +17,13 @@ import useQrOverview from './hooks/useQrOverview'
 import useQrList from './hooks/useQrList'
 import useQrEdit from './hooks/useQrEdit'
 import useSession from './hooks/useSession'
+import useQrSelection from './hooks/useQrSelection'
 import { bulkManageQrCodes, deleteQrCode } from './services/qr.service'
 
 function App() {
   const { user, setUser, isCheckingSession, clearSession } = useSession()
   
   const [activeNav, setActiveNav] = useState('Overview')
-  const [selectedQrIds, setSelectedQrIds] = useState([])
   const [isBulkManaging, setIsBulkManaging] = useState(false)
   const [bulkActionError, setBulkActionError] = useState('')
   const [bulkActionMessage, setBulkActionMessage] = useState('')
@@ -55,6 +55,13 @@ function App() {
     pagination,
     refreshQrCodes,
   } = useQrList(user, setSelectedAnalyticsQr)
+  const {
+    selectedQrIds,
+    setSelectedQrIds,
+    clearSelection,
+    handleTogglePageSelection,
+    handleToggleSelection,
+  } = useQrSelection(qrCodes)
   const {
     editingQr,
     editTitle,
@@ -121,12 +128,12 @@ function App() {
 
   const handleLogout = () => {
     clearSession()
-    setSelectedQrIds([])
+    clearSelection()
     resetOverview()
   }
 
   const clearQrSelection = () => {
-    setSelectedQrIds([])
+    clearSelection()
     setBulkActionError('')
     setBulkActionMessage('')
   }
@@ -155,27 +162,6 @@ function App() {
     setQrTypeFilter('')
     setStatusFilter('')
     setCurrentPage(1)
-  }
-
-  const handleTogglePageSelection = () => {
-    const pageIds = qrCodes.map((item) => String(item.id))
-    const allSelected = pageIds.every((id) => selectedQrIds.includes(id))
-
-    setSelectedQrIds((current) =>
-      allSelected
-        ? current.filter((id) => !pageIds.includes(id))
-        : [...new Set([...current, ...pageIds])],
-    )
-  }
-
-  const handleToggleSelection = (id) => {
-    const selectedId = String(id)
-
-    setSelectedQrIds((current) =>
-      current.includes(selectedId)
-        ? current.filter((id) => id !== selectedId)
-        : [...current, selectedId],
-    )
   }
 
   const handlePageSizeChange = (size) => {
