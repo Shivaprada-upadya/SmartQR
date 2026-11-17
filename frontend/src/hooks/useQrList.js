@@ -112,6 +112,18 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
     setRefreshKey((key) => key + 1)
   }
 
+  const resetQrList = () => {
+    setQrCodes([])
+    setQrCodesUser(null)
+    setCurrentPage(1)
+    setSearchTerm('')
+    setDebouncedSearchTerm('')
+    setQrTypeFilter('')
+    setStatusFilter('')
+    setPagination(EMPTY_PAGINATION)
+    setQrListError('')
+  }
+
   const hasCurrentUserData = Boolean(user && qrCodesUser === user)
 
   return {
@@ -132,5 +144,6 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
     setStatusFilter,
     pagination: hasCurrentUserData ? pagination : EMPTY_PAGINATION,
     refreshQrCodes,
+    resetQrList,
   }
 }

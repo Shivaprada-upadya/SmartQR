@@ -52,6 +52,7 @@ function App() {
     setStatusFilter,
     pagination,
     refreshQrCodes,
+    resetQrList,
   } = useQrList(user, setSelectedAnalyticsQr)
   const {
     selectedQrIds,
@@ -155,6 +156,7 @@ function App() {
   const handleLogout = () => {
     clearSession()
     clearSelection()
+    resetQrList()
     resetOverview()
     setSelectedAnalyticsQr('')
   }

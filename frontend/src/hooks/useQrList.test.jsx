@@ -176,4 +176,27 @@ describe('useQrList', () => {
     await act(async () => pendingResponses[1](makeResponse('new-qr')))
     await waitFor(() => expect(result.current.qrCodes[0]?.id).toBe('new-qr'))
   })
+
+  it('resets account-specific list state on logout', async () => {
+    mocks.getQrCodes.mockResolvedValue(response)
+    const user = { id: 'user-1' }
+    const { result } = renderHook(() => useQrList(user, vi.fn()))
+
+    await waitFor(() => expect(result.current.qrCodes).toHaveLength(1))
+
+    act(() => {
+      result.current.setCurrentPage(3)
+      result.current.setSearchTerm('events')
+      result.current.setQrTypeFilter('url')
+      result.current.setStatusFilter('true')
+    })
+    act(() => result.current.resetQrList())
+
+    expect(result.current.qrCodes).toEqual([])
+    expect(result.current.currentPage).toBe(1)
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.qrTypeFilter).toBe('')
+    expect(result.current.statusFilter).toBe('')
+    expect(result.current.pagination.totalRecords).toBe(0)
+  })
 })
