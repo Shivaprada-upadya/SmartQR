@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react'
 import { getQrCodes } from '../services/qr.service'
 
+const EMPTY_PAGINATION = {
+  page: 1,
+  limit: 5,
+  totalRecords: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+}
+
 export default function useQrList(user, setSelectedAnalyticsQr) {
   const [qrCodes, setQrCodes] = useState([])
+  const [qrCodesUser, setQrCodesUser] = useState(user)
   const [isLoadingQrs, setIsLoadingQrs] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
@@ -11,14 +21,7 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
   const [qrTypeFilter, setQrTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 5,
-    totalRecords: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  })
+  const [pagination, setPagination] = useState(EMPTY_PAGINATION)
   const [qrListError, setQrListError] = useState('')
 
   useEffect(() => {
@@ -66,6 +69,7 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
         }))
 
         setQrCodes(formattedQrCodes)
+        setQrCodesUser(user)
         setPagination(response.pagination)
         setSelectedAnalyticsQr((current) => {
           if (current) {
@@ -108,8 +112,10 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
     setRefreshKey((key) => key + 1)
   }
 
+  const hasCurrentUserData = Boolean(user && qrCodesUser === user)
+
   return {
-    qrCodes,
+    qrCodes: hasCurrentUserData ? qrCodes : [],
     setQrCodes,
     isLoadingQrs,
     qrListError,
@@ -124,7 +130,7 @@ export default function useQrList(user, setSelectedAnalyticsQr) {
     setQrTypeFilter,
     statusFilter,
     setStatusFilter,
-    pagination,
+    pagination: hasCurrentUserData ? pagination : EMPTY_PAGINATION,
     refreshQrCodes,
   }
 }

@@ -112,4 +112,37 @@ describe('useQrList', () => {
     renderHook(() => useQrList(null, vi.fn()))
     expect(mocks.getQrCodes).not.toHaveBeenCalled()
   })
+
+  it('hides the previous account QR data while loading a different user', async () => {
+    const firstUser = { id: 'user-1' }
+    const nextUser = { id: 'user-2' }
+    const setSelectedAnalyticsQr = vi.fn()
+    mocks.getQrCodes.mockResolvedValueOnce(response)
+    const { result, rerender } = renderHook(
+      ({ user }) => useQrList(user, setSelectedAnalyticsQr),
+      { initialProps: { user: firstUser } },
+    )
+
+    await waitFor(() => expect(result.current.qrCodes).toHaveLength(1))
+
+    const nextUserResponse = {
+      data: {
+        qrCodes: [{
+          ...response.data.qrCodes[0],
+          id: 'qr-2',
+          title: 'New account QR',
+        }],
+      },
+      pagination,
+    }
+    mocks.getQrCodes.mockResolvedValueOnce(nextUserResponse)
+    rerender({ user: nextUser })
+
+    expect(result.current.qrCodes).toEqual([])
+    expect(result.current.pagination.totalRecords).toBe(0)
+
+    await waitFor(() =>
+      expect(result.current.qrCodes[0]?.id).toBe('qr-2'),
+    )
+  })
 })
