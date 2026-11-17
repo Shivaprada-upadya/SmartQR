@@ -19,6 +19,7 @@ import useQrEdit from './hooks/useQrEdit'
 import useSession from './hooks/useSession'
 import useQrSelection from './hooks/useQrSelection'
 import useQrManagement from './hooks/useQrManagement'
+import useQrListControls from './hooks/useQrListControls'
 
 function App() {
   const { user, setUser, isCheckingSession, clearSession } = useSession()
@@ -102,6 +103,22 @@ function App() {
     refreshOverview,
     setQrListError,
   })
+  const {
+    handleSearchChange,
+    handleQrTypeFilterChange,
+    handleStatusFilterChange,
+    handleResetFilters,
+    handlePageSizeChange,
+    handlePageChange,
+  } = useQrListControls({
+    clearSelection,
+    clearBulkActionFeedback,
+    setSearchTerm,
+    setQrTypeFilter,
+    setStatusFilter,
+    setPageSize,
+    setCurrentPage,
+  })
 
   const {
     qrExportSize,
@@ -147,48 +164,6 @@ function App() {
     clearSession()
     clearSelection()
     resetOverview()
-  }
-
-  const clearQrSelection = () => {
-    clearSelection()
-    clearBulkActionFeedback()
-  }
-
-  const handleSearchChange = (value) => {
-    clearQrSelection()
-    setSearchTerm(value)
-    setCurrentPage(1)
-  }
-
-  const handleQrTypeFilterChange = (value) => {
-    clearQrSelection()
-    setQrTypeFilter(value)
-    setCurrentPage(1)
-  }
-
-  const handleStatusFilterChange = (value) => {
-    clearQrSelection()
-    setStatusFilter(value)
-    setCurrentPage(1)
-  }
-
-  const handleResetFilters = () => {
-    clearQrSelection()
-    setSearchTerm('')
-    setQrTypeFilter('')
-    setStatusFilter('')
-    setCurrentPage(1)
-  }
-
-  const handlePageSizeChange = (size) => {
-    clearQrSelection()
-    setPageSize(size)
-    setCurrentPage(1)
-  }
-
-  const handlePageChange = (page) => {
-    clearQrSelection()
-    setCurrentPage(page)
   }
 
   const scrollToSection = (target, label) => {
