@@ -108,4 +108,34 @@ describe('useQrCreation', () => {
     expect(result.current.error).toBe('Enter a valid URL, including https://')
     expect(mocks.createQrCode).not.toHaveBeenCalled()
   })
+
+  it('ignores a second submit while a creation request is in flight', async () => {
+    let resolveCreation
+    mocks.createQrCode.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCreation = resolve
+      }),
+    )
+    mocks.toDataURL.mockResolvedValue('data:image/png;base64,qr')
+    const { result } = renderHook(() => useQrCreation(vi.fn()))
+    act(() => {
+      result.current.setTitle('Event QR')
+      result.current.setDestination('https://example.com/events')
+    })
+
+    let firstSubmission
+    await act(async () => {
+      firstSubmission = result.current.handleGenerate({
+        preventDefault: vi.fn(),
+      })
+      await result.current.handleGenerate({ preventDefault: vi.fn() })
+
+      expect(mocks.createQrCode).toHaveBeenCalledOnce()
+
+      resolveCreation({ data: { qrCode: {} } })
+      await firstSubmission
+    })
+
+    expect(mocks.createQrCode).toHaveBeenCalledOnce()
+  })
 })

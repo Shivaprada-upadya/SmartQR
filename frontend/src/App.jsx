@@ -211,7 +211,7 @@ function App() {
           onRetry={refreshOverview}
         />
 
-        <section className="content-grid">
+        <section className="content-grid analytics-grid">
           <AnalyticsPanel
             analytics={analytics}
             qrCodes={qrCodes}
@@ -225,29 +225,29 @@ function App() {
             onAnalyticsQrChange={setSelectedAnalyticsQr}
             onAnalyticsRangeChange={setAnalyticsRange}
           />
-
-          <QrCodeCreatePanel
-            title={title}
-            destination={destination}
-            qrType={qrType}
-            qrMode={qrMode}
-            isGenerating={isGenerating}
-            error={error}
-            generatedQR={generatedQR}
-            generatedTitle={generatedTitle}
-            qrExportSize={qrExportSize}
-            exportError={exportError}
-            onTitleChange={setTitle}
-            onDestinationChange={setDestination}
-            onQrModeChange={handleQrModeChange}
-            onQrTypeChange={setQrType}
-            onQrExportSizeChange={setQrExportSize}
-            onSubmit={handleGenerate}
-            onDownload={(format) =>
-              downloadQr(generatedQRContent, generatedTitle, format)
-            }
-          />
         </section>
+
+        <QrCodeCreatePanel
+          title={title}
+          destination={destination}
+          qrType={qrType}
+          qrMode={qrMode}
+          isGenerating={isGenerating}
+          error={error}
+          generatedQR={generatedQR}
+          generatedTitle={generatedTitle}
+          qrExportSize={qrExportSize}
+          exportError={exportError}
+          onTitleChange={setTitle}
+          onDestinationChange={setDestination}
+          onQrModeChange={handleQrModeChange}
+          onQrTypeChange={setQrType}
+          onQrExportSizeChange={setQrExportSize}
+          onSubmit={handleGenerate}
+          onDownload={(format) =>
+            downloadQr(generatedQRContent, generatedTitle, format)
+          }
+        />
 
         <QrCodeManagementPanel
           data={{

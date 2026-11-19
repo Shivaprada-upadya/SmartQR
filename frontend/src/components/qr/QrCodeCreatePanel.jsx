@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types'
-import { Button, Card, Input, SectionHeading, Select } from '../ui'
+import { Badge, Button, Card, Input, Select, SectionHeading } from '../ui'
+import QrCodePreview from './QrCodePreview'
 
 function QrCodeCreatePanel({
   title,
@@ -23,124 +24,131 @@ function QrCodeCreatePanel({
   return (
     <Card as="article" className="panel create-panel" id="create">
       <SectionHeading
-        className="panel-heading"
-        title="Create a QR Code"
-        description="Generate a QR code in seconds."
-        level={3}
-        actions={<span className="create-icon">▦</span>}
+        className="create-heading"
+        title="Configure your QR code"
+        description="Choose how it works, add your content, and preview it before downloading."
+        level={2}
+        actions={<Badge variant="brand">QR workspace</Badge>}
       />
 
-      <form onSubmit={onSubmit}>
-        <label htmlFor="qr-title">QR Code Name</label>
-        <Input
-          id="qr-title"
-          type="text"
-          placeholder="e.g. My Website"
-          value={title}
-          onChange={(event) => onTitleChange(event.target.value)}
-          maxLength={60}
-        />
+      <div className="create-workspace">
+        <form className="create-form" onSubmit={onSubmit}>
+          <Input
+            id="qr-title"
+            label="QR code name"
+            hint="Choose a name to help you recognize this code later."
+            type="text"
+            placeholder="e.g. Summer event registration"
+            value={title}
+            onChange={(event) => onTitleChange(event.target.value)}
+            maxLength={60}
+            aria-required="true"
+          />
 
-        <label htmlFor="qr-mode">QR Code Mode</label>
-        <Select
-          id="qr-mode"
-          value={qrMode}
-          onChange={(event) => onQrModeChange(event.target.value)}
-        >
-          <option value="static">Static QR Code</option>
-          <option value="dynamic">Dynamic QR Code</option>
-        </Select>
-
-        <label htmlFor="qr-type">Content Type</label>
-        <Select
-          id="qr-type"
-          value={qrType}
-          onChange={(event) => onQrTypeChange(event.target.value)}
-        >
-          <option value="URL">Website URL</option>
-          <option value="Text" disabled={qrMode === 'dynamic'}>
-            Plain Text
-          </option>
-        </Select>
-
-        <label htmlFor="qr-content">
-          {qrType === 'URL' ? 'Website URL' : 'Text Content'}
-        </label>
-        <Input
-          as="textarea"
-          id="qr-content"
-          placeholder={
-            qrType === 'URL'
-              ? 'https://example.com'
-              : 'Enter the text for your QR code'
-          }
-          value={destination}
-          onChange={(event) => onDestinationChange(event.target.value)}
-          rows={3}
-          maxLength={2000}
-        />
-
-        {error && <p className="form-error" role="alert">{error}</p>}
-
-        <Button
-          className="generate-button"
-          type="submit"
-          disabled={isGenerating}
-          isLoading={isGenerating}
-          loadingLabel="Generating QR code"
-        >
-          {isGenerating ? 'Generating...' : '✦  Generate QR Code'}
-        </Button>
-      </form>
-
-      {generatedQR && (
-        <div className="qr-result">
-          <div className="qr-preview">
-            <img src={generatedQR} alt={`QR code for ${generatedTitle}`} />
-          </div>
-
-          <div className="qr-result-info">
-            <strong>{generatedTitle}</strong>
-            <span>QR code generated successfully</span>
-
-            <label htmlFor="qr-export-size">Export dimensions</label>
-            <Select
-              id="qr-export-size"
-              className="period-select"
-              value={qrExportSize}
-              onChange={(event) => onQrExportSizeChange(event.target.value)}
-            >
-              <option value="280">280 × 280</option>
-              <option value="512">512 × 512</option>
-              <option value="1024">1024 × 1024</option>
-            </Select>
-
-            <div className="action-buttons">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onDownload('png')}
-              >
-                ↓ PNG
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onDownload('svg')}
-              >
-                ↓ SVG
-              </Button>
+          <fieldset className="qr-mode-fieldset">
+            <legend className="ui-field-label">QR code mode</legend>
+            <div className="qr-mode-options">
+              <label className="qr-mode-option">
+                <input
+                  type="radio"
+                  name="qr-mode"
+                  value="static"
+                  checked={qrMode === 'static'}
+                  onChange={() => onQrModeChange('static')}
+                />
+                <span className="qr-mode-option__body">
+                  <span className="qr-mode-option__title">Static</span>
+                  <span className="qr-mode-option__description">
+                    Encodes your content directly. It cannot be changed later.
+                  </span>
+                </span>
+              </label>
+              <label className="qr-mode-option">
+                <input
+                  type="radio"
+                  name="qr-mode"
+                  value="dynamic"
+                  checked={qrMode === 'dynamic'}
+                  onChange={() => onQrModeChange('dynamic')}
+                />
+                <span className="qr-mode-option__body">
+                  <span className="qr-mode-option__title">
+                    Dynamic <Badge variant="info">Editable destination</Badge>
+                  </span>
+                  <span className="qr-mode-option__description">
+                    Redirects through SmartQR so you can update the destination.
+                  </span>
+                </span>
+              </label>
             </div>
+          </fieldset>
 
-            {exportError && (
-              <span className="export-error">{exportError}</span>
-            )}
-          </div>
-        </div>
-      )}
+          <Select
+            id="qr-type"
+            label="Content type"
+            hint={
+              qrMode === 'dynamic'
+                ? 'Dynamic codes use a website URL as their destination.'
+                : 'Choose what people will see when they scan your code.'
+            }
+            value={qrType}
+            onChange={(event) => onQrTypeChange(event.target.value)}
+          >
+            <option value="URL">Website URL</option>
+            <option value="Text" disabled={qrMode === 'dynamic'}>
+              Plain text
+            </option>
+          </Select>
+
+          <Input
+            as="textarea"
+            id="qr-content"
+            label={qrType === 'URL' ? 'Website URL' : 'Text content'}
+            hint={
+              qrType === 'URL'
+                ? 'Include https:// for the best scanning experience.'
+                : 'Add the text you want to share when the QR code is scanned.'
+            }
+            placeholder={
+              qrType === 'URL'
+                ? 'https://example.com'
+                : 'Enter the text for your QR code'
+            }
+            value={destination}
+            onChange={(event) => onDestinationChange(event.target.value)}
+            rows={4}
+            maxLength={2000}
+            aria-required="true"
+          />
+
+          {error && (
+            <p className="create-form-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <Button
+            className="generate-button"
+            type="submit"
+            size="lg"
+            disabled={isGenerating}
+            isLoading={isGenerating}
+            loadingLabel="Creating your QR code"
+          >
+            {isGenerating ? 'Creating QR code...' : 'Generate QR code'}
+          </Button>
+        </form>
+
+        <QrCodePreview
+          generatedQR={generatedQR}
+          generatedTitle={generatedTitle}
+          qrExportSize={qrExportSize}
+          exportError={exportError}
+          isGenerating={isGenerating}
+          onQrExportSizeChange={onQrExportSizeChange}
+          onDownload={onDownload}
+        />
+      </div>
     </Card>
   )
 }

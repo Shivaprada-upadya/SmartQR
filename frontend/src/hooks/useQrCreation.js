@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { createQrCode } from '../services/qr.service'
 
@@ -12,6 +12,7 @@ export default function useQrCreation(onCreated) {
   const [generatedQRContent, setGeneratedQRContent] = useState('')
   const [error, setError] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const submissionInProgress = useRef(false)
 
   const handleQrModeChange = (mode) => {
     setQrMode(mode)
@@ -23,6 +24,11 @@ export default function useQrCreation(onCreated) {
 
   const handleGenerate = async (event) => {
     event.preventDefault()
+
+    if (submissionInProgress.current) {
+      return
+    }
+
     setError('')
     setGeneratedQR('')
 
@@ -47,6 +53,7 @@ export default function useQrCreation(onCreated) {
       }
     }
 
+    submissionInProgress.current = true
     try {
       setIsGenerating(true)
 
@@ -87,6 +94,7 @@ export default function useQrCreation(onCreated) {
     } catch (requestError) {
       setError(requestError.message || 'Unable to create the QR code.')
     } finally {
+      submissionInProgress.current = false
       setIsGenerating(false)
     }
   }
