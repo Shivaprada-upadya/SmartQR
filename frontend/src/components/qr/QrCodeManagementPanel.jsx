@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import { Button, Card, SectionHeading } from '../ui'
+import { Badge, Button, Card, SectionHeading } from '../ui'
 import QrCodeFilters from './QrCodeFilters'
 import QrCodePagination from './QrCodePagination'
 import QrCodeTable from './QrCodeTable'
@@ -30,18 +30,13 @@ function QrCodeManagementPanel({ data, actions }) {
     >
       <SectionHeading
         className="panel-heading recent-heading"
-        title="Recent QR Codes"
-        description="View and manage your recently created QR codes."
+        title="QR code library"
+        description="Search, filter, download, and manage every QR code in your workspace."
         level={3}
         actions={(
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-button"
-            onClick={actions.onViewAll}
-          >
-            View all <span>→</span>
-          </Button>
+          <Badge variant="neutral">
+            {pagination.totalRecords} QR code{pagination.totalRecords === 1 ? '' : 's'}
+          </Badge>
         )}
       />
 
@@ -56,9 +51,16 @@ function QrCodeManagementPanel({ data, actions }) {
       />
 
       <div className="bulk-action-controls">
-        <span className="bulk-action-count" aria-live="polite">
-          {selectedQrIds.length} selected on this page
-        </span>
+        <div className="bulk-action-summary">
+          <span className="bulk-action-count" aria-live="polite">
+            {selectedQrIds.length} selected
+          </span>
+          <span className="bulk-action-help">
+            {selectedQrIds.length === 0
+              ? 'Select rows to apply an action.'
+              : 'Actions apply to the selected QR codes.'}
+          </span>
+        </div>
         <div className="bulk-action-buttons" aria-label="Bulk actions">
           <Button
             type="button"

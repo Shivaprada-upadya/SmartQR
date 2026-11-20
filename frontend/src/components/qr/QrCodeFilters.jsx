@@ -12,33 +12,42 @@ function QrCodeFilters({
 }) {
   return (
     <div className="qr-filter-controls">
-      <Input
-        type="search"
-        placeholder="Search by QR title or destination..."
-        value={searchTerm}
-        onChange={(event) => onSearchChange(event.target.value)}
-        aria-label="Search QR codes"
-      />
+      <div className="qr-filter-search">
+        <Input
+          id="qr-search"
+          label="Search"
+          type="search"
+          placeholder="Title or destination"
+          value={searchTerm}
+          onChange={(event) => onSearchChange(event.target.value)}
+        />
+      </div>
 
-      <Select
-        value={qrTypeFilter}
-        onChange={(event) => onQrTypeChange(event.target.value)}
-        aria-label="Filter by QR type"
-      >
-        <option value="">All QR types</option>
-        <option value="static">Static</option>
-        <option value="dynamic">Dynamic</option>
-      </Select>
+      <div className="qr-filter-field">
+        <Select
+          id="qr-type-filter"
+          label="QR type"
+          value={qrTypeFilter}
+          onChange={(event) => onQrTypeChange(event.target.value)}
+        >
+          <option value="">All types</option>
+          <option value="static">Static</option>
+          <option value="dynamic">Dynamic</option>
+        </Select>
+      </div>
 
-      <Select
-        value={statusFilter}
-        onChange={(event) => onStatusChange(event.target.value)}
-        aria-label="Filter by status"
-      >
-        <option value="">All statuses</option>
-        <option value="true">Active</option>
-        <option value="false">Inactive</option>
-      </Select>
+      <div className="qr-filter-field">
+        <Select
+          id="qr-status-filter"
+          label="Status"
+          value={statusFilter}
+          onChange={(event) => onStatusChange(event.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </Select>
+      </div>
 
       <Button
         type="button"

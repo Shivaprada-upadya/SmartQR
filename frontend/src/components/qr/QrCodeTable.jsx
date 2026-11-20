@@ -12,7 +12,7 @@ const qrCodeShape = PropTypes.shape({
 
 function QrCodeActions({ item, onEdit, onDownload, onDelete }) {
   return (
-    <div className="action-buttons">
+    <div className="qr-row-actions" aria-label={`Actions for ${item.title}`}>
       <Button
         type="button"
         variant="secondary"
