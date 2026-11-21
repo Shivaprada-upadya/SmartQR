@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types'
-import { Card, EmptyState, SectionHeading, Select } from '../ui'
+import { Badge, Card, EmptyState, LoadingSpinner, SectionHeading, Select } from '../ui'
+import ScanTrendChart from './ScanTrendChart'
 
 const analyticsRangeLabels = {
   '7d': 'Last 7 days',
@@ -48,36 +49,17 @@ function AnalyticsPanel({
     })
   }
 
-  const maxDailyScans = Math.max(
-    ...dailyScans.map((item) => Number(item.scans)),
-    0,
-  )
-  const chartAxisMax = Math.max(4, Math.ceil(maxDailyScans / 4) * 4)
-  const chartYAxisLabels = Array.from(
-    { length: 5 },
-    (_, index) => chartAxisMax - (index * chartAxisMax) / 4,
-  )
-  const chartPoints = dailyScans.map((item, index) => {
-    const x = index * (600 / Math.max(dailyScans.length - 1, 1))
-    const y = 190 - (Number(item.scans) / chartAxisMax) * 160
-
-    return `${x},${y}`
-  })
-  const chartPolygonPoints = chartPoints.length
-    ? `0,190 ${chartPoints.join(' ')} 600,190`
-    : ''
-  const chartLabelInterval = Math.max(
-    1,
-    Math.ceil(dailyScans.length / 7),
-  )
-
   const renderBreakdown = (items, keyField, loadingMessage, emptyMessage) => {
     if (isLoadingAnalytics) {
-      return <p>{loadingMessage}</p>
+      return (
+        <div className="analytics-breakdown-state">
+          <LoadingSpinner label={loadingMessage} showLabel />
+        </div>
+      )
     }
 
     if (items.length === 0) {
-      return <p>{emptyMessage}</p>
+      return <p className="analytics-breakdown-empty">{emptyMessage}</p>
     }
 
     return items.map((item) => {
@@ -105,14 +87,15 @@ function AnalyticsPanel({
     <>
       <Card as="article" className="panel analytics-panel" id="analytics">
         <SectionHeading
-          className="panel-heading"
-          title="Scan Analytics"
-          description="Track how your QR codes perform over time."
+          className="analytics-heading"
+          title="Analytics"
+          description="Understand scan performance and audience activity."
           level={3}
           actions={(
             <div className="analytics-filters">
               <Select
-                className="period-select"
+                className="analytics-filter"
+                label="QR code"
                 value={selectedAnalyticsQr || ''}
                 onChange={(event) => onAnalyticsQrChange(event.target.value)}
                 disabled={qrCodes.length === 0}
@@ -130,7 +113,8 @@ function AnalyticsPanel({
               </Select>
 
               <Select
-                className="period-select"
+                className="analytics-filter"
+                label="Date range"
                 value={analyticsRange}
                 onChange={(event) => onAnalyticsRangeChange(event.target.value)}
                 aria-label="Analytics date range"
@@ -143,91 +127,36 @@ function AnalyticsPanel({
           )}
         />
 
-        <div className="chart-summary">
-          <strong>
-            {isLoadingAnalytics
-              ? '...'
-              : totalScans.toLocaleString('en-IN')}
-          </strong>
-          <span className="trend">
-            {todayScans.toLocaleString('en-IN')} today
-          </span>
-          <small>scans in {selectedRangeLabel.toLowerCase()}</small>
-        </div>
-
-        <div className="chart">
-          <div className="chart-y-labels">
-            {chartYAxisLabels.map((value, index) => (
-              <span key={index}>
-                {Math.round(value).toLocaleString('en-IN')}
-              </span>
-            ))}
+        <div className="analytics-summary-grid" aria-label="Scan summary">
+          <div className="analytics-summary-card">
+            <span>Total scans</span>
+            <strong>{isLoadingAnalytics ? '...' : totalScans.toLocaleString('en-IN')}</strong>
+            <small>{selectedRangeLabel}</small>
           </div>
-          <div className="chart-plot">
-            <div className="chart-grid-lines">
-              <span></span><span></span><span></span><span></span><span></span>
-            </div>
-            <svg
-              viewBox="0 0 600 190"
-              preserveAspectRatio="none"
-              role="img"
-              aria-label="Daily QR code scan activity for the selected QR code"
-            >
-              <defs>
-                <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity=".30" />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon points={chartPolygonPoints} fill="url(#chartFill)" />
-              <polyline
-                points={chartPoints.join(' ')}
-                fill="none"
-                stroke="#9b7bff"
-                strokeWidth="3"
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="chart-x-labels">
-              {dailyScans.map((item, index) => {
-                const isLast = index === dailyScans.length - 1
-
-                if (index % chartLabelInterval !== 0 && !isLast) {
-                  return null
-                }
-
-                const date = new Date(`${item.date}T00:00:00`)
-
-                return (
-                  <span key={item.date}>
-                    {analyticsRange === '7d'
-                      ? date.toLocaleDateString('en-IN', {
-                          weekday: 'short',
-                        })
-                      : date.toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                        })}
-                  </span>
-                )
-              })}
-            </div>
+          <div className="analytics-summary-card">
+            <span>Scans today</span>
+            <strong>{todayScans.toLocaleString('en-IN')}</strong>
+            <small>Daily activity</small>
+          </div>
+          <div className="analytics-summary-card analytics-summary-status">
+            <span>Status</span>
+            <Badge variant={analyticsError ? 'danger' : 'success'}>
+              {isLoadingAnalytics ? 'Loading' : analyticsError ? 'Unavailable' : 'Live'}
+            </Badge>
+            <small>{analyticsError || 'Updated from scan activity'}</small>
           </div>
         </div>
-        <div className="chart-note">
-          <span className="legend-dot"></span> QR code scans
-          <span className="sample-note">
-            {isLoadingAnalytics
-              ? 'Loading analytics...'
-              : analyticsError || 'Live analytics data'}
-          </span>
-        </div>
+
+        <ScanTrendChart
+          dailyScans={dailyScans}
+          analyticsRange={analyticsRange}
+          isLoading={isLoadingAnalytics}
+          error={analyticsError}
+        />
       </Card>
 
       <section className="analytics-details">
-        <Card as="article" className="panel breakdown-panel">
+        <Card as="article" className="panel breakdown-panel" padding="sm">
           <SectionHeading
             className="panel-heading"
             title="Device Breakdown"
@@ -242,7 +171,7 @@ function AnalyticsPanel({
           )}
         </Card>
 
-        <Card as="article" className="panel breakdown-panel">
+        <Card as="article" className="panel breakdown-panel" padding="sm">
           <SectionHeading
             className="panel-heading"
             title="Browser Breakdown"
@@ -257,7 +186,7 @@ function AnalyticsPanel({
           )}
         </Card>
 
-        <Card as="article" className="panel breakdown-panel">
+        <Card as="article" className="panel breakdown-panel" padding="sm">
           <SectionHeading
             className="panel-heading"
             title="Operating Systems"
