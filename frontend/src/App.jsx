@@ -188,6 +188,10 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#overview">
+        Skip to dashboard content
+      </a>
+
       <Sidebar
         user={user}
         userInitials={userInitials}
@@ -196,7 +200,7 @@ function App() {
         onLogout={handleLogout}
       />
 
-      <main className="main-content" id="overview">
+      <main className="main-content" id="overview" tabIndex={-1}>
         <DashboardHeader
           activeNav={activeNav}
           user={user}
