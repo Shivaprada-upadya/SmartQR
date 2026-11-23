@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { login, registerAccount } from '../services/auth.service'
+import { Button, Card, Input } from './ui'
 
 function Auth({ onAuthenticated }) {
   const [mode, setMode] = useState('login')
@@ -9,12 +10,17 @@ function Auth({ onAuthenticated }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionInProgress = useRef(false)
 
   const isRegistering = mode === 'register'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    if (submissionInProgress.current) return
+
     setError('')
+    submissionInProgress.current = true
     setIsSubmitting(true)
 
     try {
@@ -35,45 +41,68 @@ function Auth({ onAuthenticated }) {
     } catch (requestError) {
       setError(requestError.message || 'Something went wrong. Please try again.')
     } finally {
+      submissionInProgress.current = false
       setIsSubmitting(false)
     }
   }
 
   const switchMode = () => {
+    if (submissionInProgress.current) return
     setMode(isRegistering ? 'login' : 'register')
     setError('')
     setPassword('')
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-6 py-10">
-      <section className="w-full max-w-[420px] rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/30 sm:p-9">
-        <a href="/" className="flex w-fit items-center gap-3 text-xl font-extrabold tracking-tight">
-          <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-purple-400 to-violet-700 text-white shadow-lg shadow-purple-500/20">
-            S
+    <main className="auth-shell">
+      <section className="auth-brand-panel" aria-label="SmartQR">
+        <a href="/" className="auth-brand" aria-label="SmartQR home">
+          <span className="auth-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z" />
+              <path d="M14 14h2v2h-2zM18 14h2M14 18h2M18 18v2" />
+            </svg>
           </span>
-          <span>Smart<span className="text-brand-light">QR</span></span>
+          <span>Smart<span>QR</span></span>
         </a>
 
-        <div className="mb-7 mt-9">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isRegistering ? 'Create your account' : 'Welcome back'}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-text-muted">
-            {isRegistering
-              ? 'Sign up to start managing your QR codes.'
-              : 'Sign in to continue to your SmartQR workspace.'}
+        <div className="auth-brand-copy">
+          <span className="auth-brand-kicker">QR workspace</span>
+          <h2>Create, manage, and understand every code.</h2>
+          <p>
+            One secure workspace for QR creation, downloads, bulk management,
+            and scan insights.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-3">
-          {isRegistering && (
-            <>
-              <label htmlFor="auth-name" className="mt-2 text-xs font-semibold text-gray-300">
-                Full name
-              </label>
-              <input
+        <div className="auth-brand-proof" aria-label="SmartQR capabilities">
+          <span><strong>Static</strong> and dynamic codes</span>
+          <span><strong>Bulk</strong> QR management</span>
+          <span><strong>Live</strong> scan analytics</span>
+        </div>
+      </section>
+
+      <section className="auth-form-region" aria-labelledby="auth-heading">
+        <Card as="div" variant="raised" padding="lg" className="auth-card">
+          <div className="auth-heading">
+            <span className="auth-heading-kicker">
+              {isRegistering ? 'Get started' : 'Welcome back'}
+            </span>
+            <h1 id="auth-heading">
+              {isRegistering ? 'Create your account' : 'Sign in to SmartQR'}
+            </h1>
+            <p>
+              {isRegistering
+                ? 'Set up your workspace and start managing QR codes.'
+                : 'Enter your details to continue to your workspace.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            {isRegistering && (
+              <Input
                 id="auth-name"
+                label="Full name"
                 type="text"
                 placeholder="Enter your name"
                 value={name}
@@ -81,73 +110,65 @@ function Auth({ onAuthenticated }) {
                 maxLength={100}
                 autoComplete="name"
                 required
-                className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
               />
-            </>
-          )}
+            )}
 
-          <label htmlFor="auth-email" className="mt-2 text-xs font-semibold text-gray-300">
-            Email address
-          </label>
-          <input
-            id="auth-email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            maxLength={255}
-            autoComplete="email"
-            required
-            className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
-          />
+            <Input
+              id="auth-email"
+              label="Email address"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              maxLength={255}
+              autoComplete="email"
+              required
+            />
 
-          <label htmlFor="auth-password" className="mt-2 text-xs font-semibold text-gray-300">
-            Password
-          </label>
-          <input
-            id="auth-password"
-            type="password"
-            placeholder={isRegistering ? 'At least 8 characters' : 'Enter your password'}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={isRegistering ? 8 : 1}
-            maxLength={72}
-            autoComplete={isRegistering ? 'new-password' : 'current-password'}
-            required
-            className="h-11 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-text-muted focus:border-brand"
-          />
+            <Input
+              id="auth-password"
+              label="Password"
+              type="password"
+              placeholder={isRegistering ? 'At least 8 characters' : 'Enter your password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={isRegistering ? 8 : 1}
+              maxLength={72}
+              autoComplete={isRegistering ? 'new-password' : 'current-password'}
+              required
+            />
 
-          {error && (
-            <p role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs leading-relaxed text-danger">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="auth-form-error" role="alert">
+                {error}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-3 h-11 rounded-lg border border-brand bg-linear-to-r from-violet-500 to-violet-700 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/20 disabled:cursor-wait disabled:opacity-60"
-          >
-            {isSubmitting
-              ? 'Please wait...'
-              : isRegistering
-                ? 'Create account'
-                : 'Sign in'}
-          </button>
-        </form>
+            <Button
+              type="submit"
+              size="lg"
+              className="auth-submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              loadingLabel={isRegistering ? 'Creating account' : 'Signing in'}
+            >
+              {isRegistering ? 'Create account' : 'Sign in'}
+            </Button>
+          </form>
 
-        <p className="mt-7 text-center text-xs text-text-muted">
-          {isRegistering
-            ? 'Already have an account?'
-            : "Don't have an account?"}{' '}
-          <button
-            type="button"
-            onClick={switchMode}
-            className="font-bold text-brand-light hover:text-white"
-          >
-            {isRegistering ? 'Sign in' : 'Create account'}
-          </button>
-        </p>
+          <p className="auth-switch">
+            {isRegistering
+              ? 'Already have an account?'
+              : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              onClick={switchMode}
+              disabled={isSubmitting}
+            >
+              {isRegistering ? 'Sign in' : 'Create account'}
+            </button>
+          </p>
+        </Card>
       </section>
     </main>
   )
@@ -156,4 +177,5 @@ function Auth({ onAuthenticated }) {
 Auth.propTypes = {
   onAuthenticated: PropTypes.func.isRequired,
 }
+
 export default Auth
