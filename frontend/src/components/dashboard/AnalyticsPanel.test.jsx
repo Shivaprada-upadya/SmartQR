@@ -15,8 +15,8 @@ describe('AnalyticsPanel', () => {
         analytics={{
           summary: { total_scans: 24 },
           dailyScans: [
-            { date: '2026-11-19', scans: 8 },
-            { date: '2026-11-20', scans: 16 },
+            { date: '2026-11-19T00:00:00.000Z', scans: 8 },
+            { date: '2026-11-20T00:00:00.000Z', scans: 16 },
           ],
           deviceBreakdown: [{ device_type: 'Mobile', scans: 18 }],
           browserBreakdown: [{ browser: 'Chrome', scans: 20 }],
@@ -52,6 +52,7 @@ describe('AnalyticsPanel', () => {
     expect(screen.getAllByText('Mobile').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Chrome').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Android').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Invalid Date')).toBeNull()
 
     await user.selectOptions(screen.getByLabelText('QR code'), 'qr-2')
     await user.selectOptions(screen.getByLabelText('Date range'), '30d')

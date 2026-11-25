@@ -7,6 +7,23 @@ function ScanTrendChart({
   isLoading,
   error,
 }) {
+  const formatChartDate = (value) => {
+    if (!value) return null
+
+    const dateOnly = String(value).slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return null
+
+    const date = new Date(`${dateOnly}T00:00:00`)
+    if (Number.isNaN(date.getTime())) return null
+
+    return analyticsRange === '7d'
+      ? date.toLocaleDateString('en-IN', { weekday: 'short' })
+      : date.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+        })
+  }
+
   const maxDailyScans = Math.max(
     ...dailyScans.map((item) => Number(item.scans)),
     0,
@@ -93,15 +110,11 @@ function ScanTrendChart({
               {dailyScans.map((item, index) => {
                 const isLast = index === dailyScans.length - 1
                 if (index % chartLabelInterval !== 0 && !isLast) return null
-                const date = new Date(`${item.date}T00:00:00`)
+                const label = formatChartDate(item.date)
+                if (!label) return null
                 return (
                   <span key={item.date}>
-                    {analyticsRange === '7d'
-                      ? date.toLocaleDateString('en-IN', { weekday: 'short' })
-                      : date.toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                        })}
+                    {label}
                   </span>
                 )
               })}
