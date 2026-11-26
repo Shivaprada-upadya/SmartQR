@@ -7,7 +7,7 @@
 .auth-shell {
   display: grid;
   min-height: 100vh;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+  grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.18fr);
   background: var(--color-background);
 }
 
@@ -18,7 +18,7 @@
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  padding: clamp(var(--space-6), 6vw, var(--space-16));
+  padding: clamp(var(--space-6), 5vw, var(--space-12));
   border-right: 1px solid var(--border);
   background: var(--color-sidebar);
 }
@@ -71,7 +71,7 @@
 
 .auth-brand-copy {
   max-width: 470px;
-  margin: var(--space-12) 0;
+  margin: var(--space-10) 0;
 }
 
 .auth-brand-kicker,
@@ -87,7 +87,7 @@
   max-width: 430px;
   margin: var(--space-4) 0 var(--space-4);
   color: var(--color-text-primary);
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(2rem, 3.5vw, 2.875rem);
   line-height: 1.08;
   letter-spacing: -0.055em;
 }
@@ -109,7 +109,7 @@
 .auth-brand-proof span {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: var(--color-surface-raised);
   color: var(--color-text-muted);
   font-size: var(--font-size-micro);
@@ -123,16 +123,20 @@
   display: grid;
   min-width: 0;
   place-items: center;
-  padding: clamp(var(--space-5), 5vw, var(--space-12));
+  padding: clamp(var(--space-5), 4vw, var(--space-10));
 }
 
 .auth-card {
   width: min(100%, 460px);
-  padding: clamp(var(--space-6), 5vw, var(--space-8));
+  padding: clamp(var(--space-6), 4vw, var(--space-8));
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card);
 }
 
 .auth-heading {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .auth-heading h1 {
