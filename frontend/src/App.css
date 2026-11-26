@@ -1278,6 +1278,7 @@ tbody tr:last-child td {
     border-right: 0;
     border-bottom: 1px solid var(--border);
     background: var(--color-sidebar);
+    overflow: hidden;
   }
 
   .sidebar-profile {
@@ -1322,6 +1323,8 @@ tbody tr:last-child td {
     grid-area: navigation;
     display: flex;
     min-width: 0;
+    width: 100%;
+    max-width: 100%;
     gap: var(--space-2);
     margin: 0;
     overflow-x: auto;
@@ -1433,6 +1436,18 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 390px) {
+  .analytics-heading,
+  .analytics-heading .ui-section-heading__actions,
+  .analytics-filters {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .analytics-filter {
+    min-width: 0;
+    max-width: none;
+  }
+
   .analytics-summary-grid {
     grid-template-columns: minmax(0, 1fr);
   }
