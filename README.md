@@ -8,11 +8,22 @@ SmartQR is a full-stack QR code management application. Users can create and man
 - Create static QR codes for URLs or text, and dynamic QR codes that redirect through a short link.
 - Edit, activate, deactivate, delete, and bulk-manage QR codes.
 - Search and filter the QR list, with server-side pagination and sorting, in a desktop table or mobile-friendly cards.
-- Navigate a responsive dashboard with account-aware page titles and QR workspace sections.
+- Navigate a responsive dashboard with account-aware page titles, mobile navigation, keyboard focus states, and QR workspace sections.
 - Download QR images as PNG or SVG.
 - Review per-QR scan trends, device, browser, operating system, and recent scan data.
+- Use a shared dark SaaS design system across authentication, dashboard, QR creation, QR management, analytics, and dialogs.
 
 Bulk selection applies to the QR codes shown on the current page. Dynamic QR scans are recorded by the backend before redirecting.
+
+## Application experience
+
+- **Authentication:** Responsive login and registration workspace with shared form controls, loading states, validation errors, and session restoration.
+- **Dashboard:** Account-wide QR totals, active QR totals, scan totals, daily averages, and account-aware navigation.
+- **QR creation:** Static and dynamic mode selection, URL and text content modes, live preview, export sizing, and PNG/SVG downloads.
+- **QR library:** Search, type/status filters, pagination, desktop table, mobile cards, row actions, edit/delete dialogs, and bulk activation/deactivation/deletion.
+- **Analytics:** Date-range and QR-code filters, scan summary, daily trend chart, device/browser/OS breakdowns, and recent scan activity.
+
+The frontend presentation is separated into shared UI primitives, layout components, QR components, dashboard components, hooks, and API services. Business logic remains in existing hooks and services, while [frontend/src/index.css](frontend/src/index.css) and [frontend/src/App.css](frontend/src/App.css) provide design tokens and application styles.
 
 ## Technology
 
@@ -41,7 +52,7 @@ frontend/src/services/               Frontend API clients
 frontend/src/hooks/                  Session, dashboard navigation, QR list and controls, selection, management, analytics, overview, creation, editing, and export workflows
 ```
 
-The shared frontend theme and global styles are in `frontend/src/index.css`; dashboard-specific styles are in `frontend/src/App.css`. Prefer the shared design tokens there when adding or updating UI styles.
+The shared frontend theme and global styles are in `frontend/src/index.css`; shared component styles are in `frontend/src/components/ui/ui.css`; dashboard, authentication, QR, analytics, modal, and responsive styles are in `frontend/src/App.css`. Prefer the shared design tokens and UI primitives when adding or updating UI styles.
 
 ## Local development
 
@@ -105,13 +116,17 @@ npm run lint
 npm run build
 ```
 
+The frontend currently includes 62 Vitest and React Testing Library tests covering authentication, session behavior, navigation, QR creation/export, QR management, analytics, and accessibility-oriented components.
+
 Run backend tests from `backend/`:
 
 ```powershell
 npm test
 ```
 
-Backend tests load their database configuration from `backend/.env.test`. Configure it to use a local test database before running the suite. Do not commit `.env` or `.env.test` files.
+The backend currently includes 73 Vitest and Supertest tests. Backend tests load their database configuration from `backend/.env.test`. Configure it to use a local test database before running the suite. Do not commit `.env` or `.env.test` files.
+
+Before frontend pushes, also run `git diff --check` and inspect `git diff` for unintended source, generated, or environment-file changes.
 
 ## API overview
 
@@ -131,4 +146,4 @@ QR management endpoints require authentication. The QR list supports pagination,
 
 ## Project status
 
-SmartQR is under active development. Existing API contracts and QR behavior should be preserved when extending the application.
+The application UI is complete across authentication, dashboard, QR creation, QR management, analytics, responsive navigation, and accessibility polish. Existing API contracts and QR behavior must be preserved when extending the application.
