@@ -637,7 +637,7 @@
 
 .chart-grid-lines span {
   width: 100%;
-  border-top: 1px dashed #303545;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .chart-plot svg {
@@ -1653,7 +1653,7 @@ tbody tr:last-child td {
   padding: var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  background: var(--color-sidebar);
 }
 
 .analytics-summary-card > span {
@@ -1682,10 +1682,10 @@ tbody tr:last-child td {
 }
 
 .analytics-chart-card {
-  padding: var(--space-4);
+  padding: clamp(var(--space-4), 2vw, var(--space-5));
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  background: var(--color-sidebar);
 }
 
 .analytics-chart-heading {

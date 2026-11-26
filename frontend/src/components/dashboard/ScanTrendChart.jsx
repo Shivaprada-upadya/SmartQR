@@ -89,13 +89,10 @@ function ScanTrendChart({
               role="img"
               aria-label="Daily QR code scan activity"
             >
-              <defs>
-                <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity=".30" />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon points={chartPolygonPoints} fill="url(#chartFill)" />
+              <polygon
+                points={chartPolygonPoints}
+                fill="var(--color-brand-surface-subtle)"
+              />
               <polyline
                 points={chartPoints.join(' ')}
                 fill="none"
