@@ -147,6 +147,7 @@
     font-family: var(--font-sans);
     font-size: var(--font-size-body);
     line-height: var(--line-height-body);
+    letter-spacing: -0.006em;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
